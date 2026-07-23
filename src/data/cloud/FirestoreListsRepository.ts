@@ -16,7 +16,7 @@ import {
   type QueryDocumentSnapshot,
 } from '@react-native-firebase/firestore';
 import { firestore, auth } from '../../services/firebase';
-import { toItemId } from '../../services/normalize';
+import { toDisplayName, toItemId } from '../../services/normalize';
 import type { ListsRepository } from '../ListsRepository';
 import type { AddItemResult, CatalogEntry, ShoppingItem, ShoppingList } from '../types';
 
@@ -120,7 +120,7 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
   }
 
   async addItem(listId: string, rawName: string, quantity: string | null = null): Promise<AddItemResult> {
-    const trimmed = rawName.trim();
+    const trimmed = toDisplayName(rawName);
     const { normalizedName, id } = toItemId(trimmed);
     const now = Date.now();
     const itemRef = doc(firestore, 'lists', listId, 'items', id);
@@ -176,7 +176,7 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
   }
 
   async renameItem(listId: string, itemId: string, newName: string): Promise<void> {
-    const trimmed = newName.trim();
+    const trimmed = toDisplayName(newName);
     const { normalizedName, id: newId } = toItemId(trimmed);
     const now = Date.now();
     const oldRef = doc(firestore, 'lists', listId, 'items', itemId);

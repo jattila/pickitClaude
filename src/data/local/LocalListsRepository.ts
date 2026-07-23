@@ -1,5 +1,5 @@
 import { getDb } from './db';
-import { toItemId } from '../../services/normalize';
+import { toDisplayName, toItemId } from '../../services/normalize';
 import type { ListsRepository } from '../ListsRepository';
 import type { AddItemResult, CatalogEntry, ShoppingItem, ShoppingList } from '../types';
 
@@ -111,7 +111,7 @@ class LocalListsRepositoryImpl implements ListsRepository {
   }
 
   async addItem(listId: string, rawName: string, quantity: string | null = null): Promise<AddItemResult> {
-    const trimmed = rawName.trim();
+    const trimmed = toDisplayName(rawName);
     const { normalizedName, id } = toItemId(trimmed);
     const db = await getDb();
     const now = Date.now();
@@ -161,7 +161,7 @@ class LocalListsRepositoryImpl implements ListsRepository {
 
   async renameItem(listId: string, itemId: string, newName: string): Promise<void> {
     const db = await getDb();
-    const trimmed = newName.trim();
+    const trimmed = toDisplayName(newName);
     const { normalizedName, id: newId } = toItemId(trimmed);
     const now = Date.now();
 
