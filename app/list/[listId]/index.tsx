@@ -81,7 +81,17 @@ export default function ListDetailScreen() {
             onDeleteRequest={() => setDeletingItem(item)}
           />
         )}
-        onScrollToIndexFailed={() => {}}
+        initialNumToRender={50}
+        onScrollToIndexFailed={(info) => {
+          setTimeout(() => {
+            sectionListRef.current?.scrollToLocation({
+              sectionIndex: 0,
+              itemIndex: info.index,
+              viewPosition: 1,
+              animated: true,
+            });
+          }, 100);
+        }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Még nincs tétel ezen a listán.</Text>
