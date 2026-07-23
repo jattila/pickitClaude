@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signOut } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
 import { useAuthStore } from '../src/store/authStore';
+import { PromptDialog } from '../src/components/PromptDialog';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const [enteringCode, setEnteringCode] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -32,6 +35,28 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
       )}
+
+      {user ? (
+        <>
+          <Text style={styles.sectionHeader}>Csoportok</Text>
+          <View style={styles.card}>
+            <Pressable style={styles.button} onPress={() => setEnteringCode(true)}>
+              <Text style={styles.buttonLabel}>Csatlakozás meghívó kóddal</Text>
+            </Pressable>
+          </View>
+        </>
+      ) : null}
+
+      <PromptDialog
+        visible={enteringCode}
+        title="Meghívó kód"
+        placeholder="pl. AB2C3D4E"
+        onCancel={() => setEnteringCode(false)}
+        onConfirm={(code) => {
+          setEnteringCode(false);
+          router.push(`/join/${code.trim().toUpperCase()}`);
+        }}
+      />
     </View>
   );
 }

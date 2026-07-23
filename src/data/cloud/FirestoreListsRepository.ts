@@ -78,13 +78,13 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     return onSnapshot(q, (snap) => onChange(snap.docs.map(toShoppingList)));
   }
 
-  async createList(name: string): Promise<ShoppingList> {
+  async createList(name: string, groupId: string | null = null): Promise<ShoppingList> {
     const uid = requireUid();
     const now = Date.now();
     const ref = doc(collection(firestore, 'lists'));
     const list = {
       name: name.trim(),
-      groupId: null,
+      groupId,
       ownerId: uid,
       activeItemCount: 0,
       boughtItemCount: 0,
@@ -93,7 +93,7 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
       updatedAt: now,
     };
     await setDoc(ref, list);
-    return { id: ref.id, name: list.name, groupId: null, createdAt: now, updatedAt: now };
+    return { id: ref.id, name: list.name, groupId, createdAt: now, updatedAt: now };
   }
 
   async renameList(listId: string, name: string): Promise<void> {
@@ -106,6 +106,16 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     itemsSnap.docs.forEach((itemDoc) => batch.delete(itemDoc.ref));
     batch.delete(doc(firestore, 'lists', listId));
     await batch.commit();
+  }
+
+  subscribeListMeta(listId: string, onChange: (list: ShoppingList | null) => void): () => void {
+    return onSnapshot(doc(firestore, 'lists', listId), (snap) => {
+      if (!snap.exists()) {
+        onChange(null);
+        return;
+      }
+      onChange(toShoppingList(snap as QueryDocumentSnapshot<DocumentData>));
+    });
   }
 
   async getItems(listId: string): Promise<ShoppingItem[]> {

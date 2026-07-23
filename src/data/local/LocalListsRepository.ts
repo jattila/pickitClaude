@@ -62,7 +62,15 @@ class LocalListsRepositoryImpl implements ListsRepository {
     return () => this.listsListeners.delete(onChange);
   }
 
-  async createList(name: string): Promise<ShoppingList> {
+  subscribeListMeta(listId: string, onChange: (list: ShoppingList | null) => void): () => void {
+    const listener = (lists: ShoppingList[]) => onChange(lists.find((l) => l.id === listId) ?? null);
+    this.listsListeners.add(listener);
+    this.getLists().then(listener);
+    return () => this.listsListeners.delete(listener);
+  }
+
+  async createList(name: string, _groupId: string | null = null): Promise<ShoppingList> {
+    // Guests have no groups — always creates a personal list regardless of _groupId.
     const db = await getDb();
     const now = Date.now();
     const id = generateId('list');

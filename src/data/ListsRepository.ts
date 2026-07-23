@@ -10,9 +10,12 @@ export interface ListsRepository {
   /** Fires `onChange` whenever the lists collection changes; returns an unsubscribe fn. */
   subscribeLists(onChange: (lists: ShoppingList[]) => void): () => void;
 
-  createList(name: string): Promise<ShoppingList>;
+  /** `groupId` is ignored by the guest (local) repository — guests have no groups. */
+  createList(name: string, groupId?: string | null): Promise<ShoppingList>;
   renameList(listId: string, name: string): Promise<void>;
   deleteList(listId: string): Promise<void>;
+  /** Single-list metadata (name, groupId, ...) regardless of whether it's personal or a group list. */
+  subscribeListMeta(listId: string, onChange: (list: ShoppingList | null) => void): () => void;
 
   getItems(listId: string): Promise<ShoppingItem[]>;
   subscribeItems(listId: string, onChange: (items: ShoppingItem[]) => void): () => void;

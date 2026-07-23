@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
-import { useLists } from '../../../src/hooks/useLists';
+import { useListMeta } from '../../../src/hooks/useListMeta';
 import { useListItems } from '../../../src/hooks/useListItems';
 import { toItemId } from '../../../src/services/normalize';
 import { ItemRow } from '../../../src/components/ItemRow';
@@ -21,8 +21,7 @@ import type { ShoppingItem } from '../../../src/data/types';
 
 export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
-  const { lists } = useLists();
-  const list = lists.find((l) => l.id === listId);
+  const list = useListMeta(listId);
   const headerHeight = useHeaderHeight();
 
   const { activeItems, checkedItems, addItem, renameItem, checkItem, restoreItem, deleteItem } =

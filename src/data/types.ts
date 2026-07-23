@@ -33,3 +33,19 @@ export interface AddItemResult {
   item: ShoppingItem;
   wasAlreadyChecked: boolean;
 }
+
+export interface Group {
+  id: string;
+  name: string;
+  ownerId: string;
+  memberIds: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface GroupMember {
+  uid: string;
+  displayName: string;
+  role: 'owner' | 'member';
+  joinedAt: number;
+}

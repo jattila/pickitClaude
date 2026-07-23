@@ -20,7 +20,7 @@ export function useLists() {
   return {
     lists,
     loading,
-    createList: (name: string) => repo.createList(name),
+    createList: (name: string, groupId?: string | null) => repo.createList(name, groupId),
     renameList: (listId: string, name: string) => repo.renameList(listId, name),
     deleteList: (listId: string) => repo.deleteList(listId),
   };
