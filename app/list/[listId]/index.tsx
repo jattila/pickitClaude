@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, SectionList, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useLists } from '../../../src/hooks/useLists';
@@ -24,9 +24,33 @@ export default function ListDetailScreen() {
   const [deletingItem, setDeletingItem] = useState<ShoppingItem | null>(null);
   const [restoreRequest, setRestoreRequest] = useState<ShoppingItem | null>(null);
 
+  const sectionListRef = useRef<SectionList<ShoppingItem>>(null);
+  const previousActiveCountRef = useRef(activeItems.length);
+  const pendingScrollRef = useRef(false);
+
+  useEffect(() => {
+    // New active items are appended to the end of the "Teendő" section (sorted
+    // by createdAt asc) — once the freshly-added item actually shows up in
+    // activeItems, scroll to it so the user sees what they just added.
+    if (pendingScrollRef.current && activeItems.length > previousActiveCountRef.current) {
+      sectionListRef.current?.scrollToLocation({
+        sectionIndex: 0,
+        itemIndex: activeItems.length - 1,
+        viewPosition: 1,
+        animated: true,
+      });
+      pendingScrollRef.current = false;
+    }
+    previousActiveCountRef.current = activeItems.length;
+  }, [activeItems.length]);
+
   const handleAdd = async (name: string) => {
     const { wasAlreadyChecked, item } = await addItem(name);
-    if (wasAlreadyChecked) setPendingRestoreConfirm(item);
+    if (wasAlreadyChecked) {
+      setPendingRestoreConfirm(item);
+      return;
+    }
+    pendingScrollRef.current = true;
   };
 
   const sections = [
@@ -42,24 +66,22 @@ export default function ListDetailScreen() {
     >
       <Stack.Screen options={{ title: list?.name ?? 'Lista' }} />
 
-      <FlatList
-        data={sections}
-        keyExtractor={(section) => section.title}
-        renderItem={({ item: section }) => (
-          <View>
-            <Text style={styles.sectionHeader}>{section.title}</Text>
-            {section.data.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                onCheck={() => checkItem(item.id)}
-                onRequestRestore={() => setRestoreRequest(item)}
-                onRenameRequest={() => setRenamingItem(item)}
-                onDeleteRequest={() => setDeletingItem(item)}
-              />
-            ))}
-          </View>
+      <SectionList
+        ref={sectionListRef}
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+        renderItem={({ item }) => (
+          <ItemRow
+            item={item}
+            onCheck={() => checkItem(item.id)}
+            onRequestRestore={() => setRestoreRequest(item)}
+            onRenameRequest={() => setRenamingItem(item)}
+            onDeleteRequest={() => setDeletingItem(item)}
+          />
         )}
+        onScrollToIndexFailed={() => {}}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Még nincs tétel ezen a listán.</Text>
