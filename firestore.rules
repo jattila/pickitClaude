@@ -20,11 +20,11 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
       }
 
-      // Personal catalog: client may read (for autocomplete) but only the
-      // item Cloud Functions (Admin SDK, bypasses rules) write usage counters.
+      // Personal catalog: M2 has no Cloud Functions yet, so the client writes
+      // its own usage counters directly. Once group catalogs land (M4) with
+      // server-side triggers, this may move behind Admin SDK-only writes.
       match /catalog/{catalogItemId} {
-        allow read: if isSignedIn() && request.auth.uid == uid;
-        allow write: if false;
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
       }
     }
 
