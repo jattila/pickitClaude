@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useLists } from '../../../src/hooks/useLists';
 import { useListItems } from '../../../src/hooks/useListItems';
 import { ItemRow } from '../../../src/components/ItemRow';
@@ -13,6 +14,7 @@ export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
   const { lists } = useLists();
   const list = lists.find((l) => l.id === listId);
+  const headerHeight = useHeaderHeight();
 
   const { activeItems, checkedItems, addItem, renameItem, checkItem, restoreItem, deleteItem } =
     useListItems(listId);
@@ -33,7 +35,11 @@ export default function ListDetailScreen() {
   ].filter((section) => section.data.length > 0);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
+    >
       <Stack.Screen options={{ title: list?.name ?? 'Lista' }} />
 
       <FlatList
@@ -114,7 +120,7 @@ export default function ListDetailScreen() {
           setDeletingItem(null);
         }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
