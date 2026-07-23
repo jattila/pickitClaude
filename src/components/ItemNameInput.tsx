@@ -1,0 +1,95 @@
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCatalogSuggestions } from '../hooks/useCatalogSuggestions';
+
+interface ItemNameInputProps {
+  listId: string;
+  onSubmit: (name: string) => void;
+}
+
+export function ItemNameInput({ listId, onSubmit }: ItemNameInputProps) {
+  const [value, setValue] = useState('');
+  const suggestions = useCatalogSuggestions(listId, value);
+
+  const submit = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onSubmit(trimmed);
+    setValue('');
+  };
+
+  return (
+    <View>
+      {suggestions.length > 0 ? (
+        <View style={styles.suggestions}>
+          {suggestions.map((suggestion) => (
+            <Pressable
+              key={suggestion.id}
+              style={styles.suggestionRow}
+              onPress={() => submit(suggestion.name)}
+            >
+              <Text style={styles.suggestionText}>{suggestion.name}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      <View style={styles.inputRow}>
+        <TextInput
+          value={value}
+          onChangeText={setValue}
+          placeholder="Új tétel neve…"
+          style={styles.input}
+          onSubmitEditing={() => submit(value)}
+          returnKeyType="done"
+        />
+        <Pressable style={styles.addButton} onPress={() => submit(value)}>
+          <Text style={styles.addButtonLabel}>Hozzáad</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 8,
+    backgroundColor: 'white',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E0E0E0',
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+  },
+  addButton: {
+    backgroundColor: '#4A90D9',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  addButtonLabel: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  suggestions: {
+    backgroundColor: '#FAFAFA',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E0E0E0',
+  },
+  suggestionRow: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  suggestionText: {
+    fontSize: 15,
+    color: '#333',
+  },
+});

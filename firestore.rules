@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // M2 scope: personal (non-group) lists only. Group membership checks are
+    // added in M3 once `groups/{groupId}/members` exists.
+    function isListOwner(listData) {
+      return isSignedIn() && listData.ownerId == request.auth.uid && listData.groupId == null;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+
+      match /devices/{tokenId} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+
+      // Personal catalog: client may read (for autocomplete) but only the
+      // item Cloud Functions (Admin SDK, bypasses rules) write usage counters.
+      match /catalog/{catalogItemId} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
+    match /lists/{listId} {
+      allow read: if isListOwner(resource.data);
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.groupId == null;
+      allow update, delete: if isListOwner(resource.data);
+
+      match /items/{itemId} {
+        allow read, write: if isListOwner(get(/databases/$(database)/documents/lists/$(listId)).data);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

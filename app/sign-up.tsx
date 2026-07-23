@@ -1,0 +1,118 @@
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
+import { auth } from '../src/services/firebase';
+import { migrateGuestDataToCloud } from '../src/services/migration';
+import { createDefaultUserProfile } from '../src/services/userProfile';
+
+export default function SignUpScreen() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    setError(null);
+    if (!email.trim() || password.length < 6) {
+      setError('Adj meg egy email címet és legalább 6 karakteres jelszót.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      await createDefaultUserProfile(credential.user.uid, email.trim());
+      await migrateGuestDataToCloud(credential.user.uid);
+      router.replace('/');
+    } catch (e: any) {
+      setError(e?.message ?? 'Nem sikerült a regisztráció.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Regisztráció</Text>
+      <Text style={styles.subtitle}>
+        A meglévő listáid és tételeid automatikusan átkerülnek a fiókodba.
+      </Text>
+
+      <TextInput
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Email cím"
+        autoCapitalize="none"
+        keyboardType="email-address"
+        style={styles.input}
+      />
+      <TextInput
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Jelszó (min. 6 karakter)"
+        secureTextEntry
+        style={styles.input}
+      />
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <Pressable style={styles.button} onPress={submit} disabled={submitting}>
+        <Text style={styles.buttonLabel}>{submitting ? 'Regisztráció…' : 'Regisztráció'}</Text>
+      </Pressable>
+
+      <Pressable onPress={() => router.push('/sign-in')}>
+        <Text style={styles.link}>Már van fiókom, bejelentkezem</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: 'white',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  error: {
+    color: '#D9534F',
+    fontSize: 13,
+  },
+  button: {
+    backgroundColor: '#4A90D9',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonLabel: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  link: {
+    color: '#4A90D9',
+    textAlign: 'center',
+    marginTop: 16,
+  },
+});

@@ -1,0 +1,110 @@
+import { useEffect, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+
+interface PromptDialogProps {
+  visible: boolean;
+  title: string;
+  initialValue?: string;
+  placeholder?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: (value: string) => void;
+  onCancel: () => void;
+}
+
+export function PromptDialog({
+  visible,
+  title,
+  initialValue = '',
+  placeholder,
+  confirmLabel = 'Mentés',
+  cancelLabel = 'Mégse',
+  onConfirm,
+  onCancel,
+}: PromptDialogProps) {
+  const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    if (visible) setValue(initialValue);
+  }, [visible, initialValue]);
+
+  const submit = () => {
+    const trimmed = value.trim();
+    if (trimmed) onConfirm(trimmed);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <Pressable style={styles.backdrop} onPress={onCancel}>
+        <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
+          <Text style={styles.title}>{title}</Text>
+          <TextInput
+            value={value}
+            onChangeText={setValue}
+            placeholder={placeholder}
+            style={styles.input}
+            autoFocus
+            onSubmitEditing={submit}
+            returnKeyType="done"
+          />
+          <View style={styles.buttonRow}>
+            <Pressable style={styles.button} onPress={onCancel}>
+              <Text style={styles.buttonLabel}>{cancelLabel}</Text>
+            </Pressable>
+            <Pressable style={styles.button} onPress={submit}>
+              <Text style={[styles.buttonLabel, styles.buttonLabelPrimary]}>{confirmLabel}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: 'white',
+    borderRadius: 14,
+    padding: 20,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+    marginBottom: 16,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 20,
+  },
+  button: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  buttonLabel: {
+    fontSize: 15,
+    color: '#666',
+  },
+  buttonLabelPrimary: {
+    color: '#4A90D9',
+    fontWeight: '600',
+  },
+});
