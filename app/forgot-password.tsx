@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
 
@@ -19,7 +19,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Text style={styles.title}>Elfelejtett jelszó</Text>
 
       {sent ? (
@@ -40,7 +40,7 @@ export default function ForgotPasswordScreen() {
           </Pressable>
         </>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

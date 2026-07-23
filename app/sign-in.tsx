@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
@@ -25,7 +25,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Text style={styles.title}>Bejelentkezés</Text>
 
       <TextInput
@@ -53,7 +53,7 @@ export default function SignInScreen() {
       <Pressable onPress={() => router.push('/forgot-password')}>
         <Text style={styles.link}>Elfelejtett jelszó</Text>
       </Pressable>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

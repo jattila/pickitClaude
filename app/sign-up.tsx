@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
@@ -33,7 +33,7 @@ export default function SignUpScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Text style={styles.title}>Regisztráció</Text>
       <Text style={styles.subtitle}>
         A meglévő listáid és tételeid automatikusan átkerülnek a fiókodba.
@@ -64,7 +64,7 @@ export default function SignUpScreen() {
       <Pressable onPress={() => router.push('/sign-in')}>
         <Text style={styles.link}>Már van fiókom, bejelentkezem</Text>
       </Pressable>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
