@@ -1,5 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Fragment, useRef, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  LayoutChangeEvent,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useLists } from '../../../src/hooks/useLists';
@@ -23,26 +31,9 @@ export default function ListDetailScreen() {
   const [renamingItem, setRenamingItem] = useState<ShoppingItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ShoppingItem | null>(null);
   const [restoreRequest, setRestoreRequest] = useState<ShoppingItem | null>(null);
+  const [scrollTargetId, setScrollTargetId] = useState<string | null>(null);
 
-  const sectionListRef = useRef<SectionList<ShoppingItem>>(null);
-  const previousActiveCountRef = useRef(activeItems.length);
-  const pendingScrollRef = useRef(false);
-
-  useEffect(() => {
-    // New active items are appended to the end of the "Teendő" section (sorted
-    // by createdAt asc) — once the freshly-added item actually shows up in
-    // activeItems, scroll to it so the user sees what they just added.
-    if (pendingScrollRef.current && activeItems.length > previousActiveCountRef.current) {
-      sectionListRef.current?.scrollToLocation({
-        sectionIndex: 0,
-        itemIndex: activeItems.length - 1,
-        viewPosition: 1,
-        animated: true,
-      });
-      pendingScrollRef.current = false;
-    }
-    previousActiveCountRef.current = activeItems.length;
-  }, [activeItems.length]);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const handleAdd = async (name: string) => {
     const { wasAlreadyChecked, item } = await addItem(name);
@@ -50,7 +41,13 @@ export default function ListDetailScreen() {
       setPendingRestoreConfirm(item);
       return;
     }
-    pendingScrollRef.current = true;
+    setScrollTargetId(item.id);
+  };
+
+  const handleTargetLayout = (event: LayoutChangeEvent) => {
+    const y = event.nativeEvent.layout.y;
+    scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+    setScrollTargetId(null);
   };
 
   const sections = [
@@ -66,38 +63,33 @@ export default function ListDetailScreen() {
     >
       <Stack.Screen options={{ title: list?.name ?? 'Lista' }} />
 
-      <SectionList
-        ref={sectionListRef}
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
-        renderItem={({ item }) => (
-          <ItemRow
-            item={item}
-            onCheck={() => checkItem(item.id)}
-            onRequestRestore={() => setRestoreRequest(item)}
-            onRenameRequest={() => setRenamingItem(item)}
-            onDeleteRequest={() => setDeletingItem(item)}
-          />
-        )}
-        initialNumToRender={50}
-        onScrollToIndexFailed={(info) => {
-          setTimeout(() => {
-            sectionListRef.current?.scrollToLocation({
-              sectionIndex: 0,
-              itemIndex: info.index,
-              viewPosition: 1,
-              animated: true,
-            });
-          }, 100);
-        }}
-        ListEmptyComponent={
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
+        {sections.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Még nincs tétel ezen a listán.</Text>
           </View>
-        }
-      />
+        ) : (
+          sections.map((section) => (
+            <Fragment key={section.title}>
+              <Text style={styles.sectionHeader}>{section.title}</Text>
+              {section.data.map((item) => (
+                <View
+                  key={item.id}
+                  onLayout={item.id === scrollTargetId ? handleTargetLayout : undefined}
+                >
+                  <ItemRow
+                    item={item}
+                    onCheck={() => checkItem(item.id)}
+                    onRequestRestore={() => setRestoreRequest(item)}
+                    onRenameRequest={() => setRenamingItem(item)}
+                    onDeleteRequest={() => setDeletingItem(item)}
+                  />
+                </View>
+              ))}
+            </Fragment>
+          ))
+        )}
+      </ScrollView>
 
       <ItemNameInput listId={listId} onSubmit={handleAdd} />
 
@@ -161,6 +153,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   sectionHeader: {
     fontSize: 13,
     fontWeight: '700',
@@ -171,8 +166,10 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   emptyState: {
+    flex: 1,
     padding: 32,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     color: '#888',
