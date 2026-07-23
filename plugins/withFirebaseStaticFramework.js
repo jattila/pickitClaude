@@ -16,11 +16,26 @@ function withFirebaseStaticFramework(config) {
     (config) => {
       const podfilePath = path.join(config.modRequest.platformProjectRoot, 'Podfile');
       let contents = fs.readFileSync(podfilePath, 'utf8');
-      const marker = '$RNFirebaseAsStaticFramework = true';
-      if (!contents.includes(marker)) {
-        contents = `${marker}\n${contents}`;
-        fs.writeFileSync(podfilePath, contents);
+
+      const topMarker = '$RNFirebaseAsStaticFramework = true';
+      if (!contents.includes(topMarker)) {
+        contents = `${topMarker}\n${contents}`;
       }
+
+      // RNFBApp/RNFBAuth's framework modules include React-Core headers
+      // (RCTBridgeModule.h, RCTConvert.h, ...) which aren't themselves built as
+      // a Clang module under use_frameworks:static, tripping
+      // -Wnon-modular-include-in-framework-module as an error. Known issue,
+      // no upstream fix yet: https://github.com/expo/expo/issues/39607
+      const buildSettingMarker = 'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES';
+      if (!contents.includes(buildSettingMarker)) {
+        contents = contents.replace(
+          /post_install do \|installer\|\n/,
+          `post_install do |installer|\n    installer.pods_project.targets.each do |target|\n      target.build_configurations.each do |build_config|\n        build_config.build_settings['${buildSettingMarker}'] = 'YES'\n      end\n    end\n`
+        );
+      }
+
+      fs.writeFileSync(podfilePath, contents);
       return config;
     },
   ]);
