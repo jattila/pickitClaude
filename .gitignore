@@ -43,3 +43,5 @@ GoogleService-Info.plist
 # generated native folders
 /ios
 /android
+functions/lib
+functions/node_modules

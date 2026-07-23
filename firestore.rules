@@ -7,10 +7,23 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // M2 scope: personal (non-group) lists only. Group membership checks are
-    // added in M3 once `groups/{groupId}/members` exists.
-    function isListOwner(listData) {
+    function isGroupMember(groupData) {
+      return isSignedIn() && request.auth.uid in groupData.memberIds;
+    }
+
+    // Personal (non-group) lists: only the owner can access.
+    function isPersonalListOwner(listData) {
       return isSignedIn() && listData.ownerId == request.auth.uid && listData.groupId == null;
+    }
+
+    // Group lists: any current member of the owning group can access.
+    function isGroupListMember(listData) {
+      return listData.groupId != null
+        && isGroupMember(get(/databases/$(database)/documents/groups/$(listData.groupId)).data);
+    }
+
+    function canAccessList(listData) {
+      return isPersonalListOwner(listData) || isGroupListMember(listData);
     }
 
     match /users/{uid} {
@@ -20,23 +33,62 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
       }
 
-      // Personal catalog: M2 has no Cloud Functions yet, so the client writes
-      // its own usage counters directly. Once group catalogs land (M4) with
-      // server-side triggers, this may move behind Admin SDK-only writes.
+      // Personal catalog: no Cloud Function manages this yet, so the client
+      // writes its own usage counters directly.
       match /catalog/{catalogItemId} {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
       }
     }
 
-    match /lists/{listId} {
-      allow read: if isListOwner(resource.data);
+    match /groups/{groupId} {
+      allow read: if isGroupMember(resource.data);
       allow create: if isSignedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.groupId == null;
-      allow update, delete: if isListOwner(resource.data);
+        && request.resource.data.memberIds.size() == 1
+        && request.resource.data.memberIds[0] == request.auth.uid;
+      // Owner can rename etc., but membership only ever changes via the
+      // redeemInvite Cloud Function (Admin SDK bypasses these rules).
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.memberIds == resource.data.memberIds;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /members/{uid} {
+        allow read: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data);
+        // Only used for the creator's own owner-member doc at group creation
+        // time; joining via invite is written server-side by redeemInvite.
+        allow create: if isSignedIn() && request.auth.uid == uid && request.resource.data.role == 'owner';
+        allow update, delete: if false;
+      }
+
+      // Group catalog land in M4 alongside the Cloud Function item triggers
+      // that will own writes to it; client read-only for now.
+      match /catalog/{catalogItemId} {
+        allow read: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data);
+        allow write: if false;
+      }
+    }
+
+    // Read-only for any signed-in user who has the code (that's the point of
+    // an invite code); all writes go through the Cloud Functions (Admin SDK).
+    match /invites/{code} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /lists/{listId} {
+      allow read: if canAccessList(resource.data);
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && (
+          request.resource.data.groupId == null
+          || isGroupMember(get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data)
+        );
+      allow update, delete: if canAccessList(resource.data);
 
       match /items/{itemId} {
-        allow read, write: if isListOwner(get(/databases/$(database)/documents/lists/$(listId)).data);
+        allow read, write: if canAccessList(get(/databases/$(database)/documents/lists/$(listId)).data);
       }
     }
 
