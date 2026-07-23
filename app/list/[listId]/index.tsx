@@ -12,6 +12,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useLists } from '../../../src/hooks/useLists';
 import { useListItems } from '../../../src/hooks/useListItems';
+import { toItemId } from '../../../src/services/normalize';
 import { ItemRow } from '../../../src/components/ItemRow';
 import { ItemNameInput } from '../../../src/components/ItemNameInput';
 import { ConfirmDialog } from '../../../src/components/ConfirmDialog';
@@ -36,12 +37,16 @@ export default function ListDetailScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const handleAdd = async (name: string) => {
+    // The item id is a deterministic slug of the name, so we know it before the
+    // write even resolves — set it as the scroll target right away so the row's
+    // very first onLayout (once it appears) triggers the scroll, instead of
+    // racing the add's async round-trip and missing that first layout pass.
+    setScrollTargetId(toItemId(name).id);
     const { wasAlreadyChecked, item } = await addItem(name);
     if (wasAlreadyChecked) {
+      setScrollTargetId(null);
       setPendingRestoreConfirm(item);
-      return;
     }
-    setScrollTargetId(item.id);
   };
 
   const handleTargetLayout = (event: LayoutChangeEvent) => {
