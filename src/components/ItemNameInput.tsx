@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useCatalogSuggestions } from '../hooks/useCatalogSuggestions';
+import { lowercaseFirstChar, toDisplayName } from '../services/normalize';
 
 interface ItemNameInputProps {
   listId: string;
@@ -12,7 +13,7 @@ export function ItemNameInput({ listId, onSubmit }: ItemNameInputProps) {
   const suggestions = useCatalogSuggestions(listId, value);
 
   const submit = (name: string) => {
-    const trimmed = name.trim();
+    const trimmed = toDisplayName(name);
     if (!trimmed) return;
     onSubmit(trimmed);
     setValue('');
@@ -36,9 +37,10 @@ export function ItemNameInput({ listId, onSubmit }: ItemNameInputProps) {
       <View style={styles.inputRow}>
         <TextInput
           value={value}
-          onChangeText={setValue}
+          onChangeText={(text) => setValue(lowercaseFirstChar(text))}
           placeholder="Új tétel neve…"
           style={styles.input}
+          autoCapitalize="none"
           onSubmitEditing={() => submit(value)}
           returnKeyType="done"
         />

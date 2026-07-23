@@ -26,9 +26,13 @@ export function toItemId(rawName: string): { normalizedName: string; id: string 
   return { normalizedName, id: slugify(normalizedName) };
 }
 
+/** Lowercases just the first character, leaving the rest (and whitespace) untouched. */
+export function lowercaseFirstChar(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
 /** Trims the raw input and lowercases just the first letter, e.g. "Tejföl" -> "tejföl". */
 export function toDisplayName(rawName: string): string {
-  const trimmed = rawName.trim();
-  if (!trimmed) return trimmed;
-  return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
+  return lowercaseFirstChar(rawName.trim());
 }
