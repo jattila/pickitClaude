@@ -194,7 +194,8 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
       createdAt: now,
       updatedAt: now,
     });
-    await this.upsertCatalog(uid, trimmed, normalizedName, id, now);
+    // Catalog is maintained server-side by the onItemCreated trigger, which
+    // routes the entry to the group's or the owner's catalog as appropriate.
 
     const item: ShoppingItem = {
       id,
@@ -209,21 +210,6 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
       updatedAt: now,
     };
     return { item, wasAlreadyChecked: false };
-  }
-
-  private async upsertCatalog(uid: string, name: string, normalizedName: string, id: string, now: number) {
-    const catalogRef = doc(firestore, 'users', uid, 'catalog', id);
-    const existing = await getDoc(catalogRef);
-    if (existing.exists()) {
-      const data = existing.data() as DocumentData;
-      await setDoc(
-        catalogRef,
-        { name, normalizedName, usageCount: (data.usageCount ?? 0) + 1, lastUsedAt: now },
-        { merge: true }
-      );
-    } else {
-      await setDoc(catalogRef, { name, normalizedName, usageCount: 1, lastUsedAt: now, createdAt: now });
-    }
   }
 
   async renameItem(listId: string, itemId: string, newName: string): Promise<void> {
@@ -243,12 +229,12 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     if (!existing.exists()) throw new Error('A tétel már nem létezik.');
 
     const data = existing.data() as DocumentData;
-    const uid = requireUid();
     const batch = writeBatch(firestore);
     batch.delete(oldRef);
     batch.set(newRef, { ...data, name: trimmed, normalizedName, updatedAt: now });
     await batch.commit();
-    await this.upsertCatalog(uid, trimmed, normalizedName, newId, now);
+    // The delete + create pair re-triggers the catalog/counter functions for
+    // the new item id; the old catalog entry stays as product history.
   }
 
   async checkItem(listId: string, itemId: string, checkedByName: string | null): Promise<void> {
@@ -276,12 +262,21 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     await deleteDoc(doc(firestore, 'lists', listId, 'items', itemId));
   }
 
-  async getCatalogSuggestions(_listId: string, prefix: string): Promise<CatalogEntry[]> {
+  /** Resolves whether a list feeds the group catalog or the owner's personal one. */
+  private async catalogCollectionForList(listId: string) {
     const uid = requireUid();
+    const listSnap = await getDoc(doc(firestore, 'lists', listId));
+    const groupId = listSnap.exists() ? ((listSnap.data() as DocumentData).groupId ?? null) : null;
+    return groupId
+      ? collection(firestore, 'groups', groupId, 'catalog')
+      : collection(firestore, 'users', uid, 'catalog');
+  }
+
+  async getCatalogSuggestions(listId: string, prefix: string): Promise<CatalogEntry[]> {
     const normalizedPrefix = prefix.trim().toLowerCase();
     if (!normalizedPrefix) return [];
     const q = query(
-      collection(firestore, 'users', uid, 'catalog'),
+      await this.catalogCollectionForList(listId),
       where('normalizedName', '>=', normalizedPrefix),
       where('normalizedName', '<=', normalizedPrefix + ''),
       orderBy('normalizedName'),

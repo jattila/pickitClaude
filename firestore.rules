@@ -33,10 +33,11 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
       }
 
-      // Personal catalog: no Cloud Function manages this yet, so the client
-      // writes its own usage counters directly.
+      // Personal catalog: client reads for autocomplete; the onItemCreated /
+      // onItemUpdated triggers (Admin SDK) own all writes.
       match /catalog/{catalogItemId} {
-        allow read, write: if isSignedIn() && request.auth.uid == uid;
+        allow read: if isSignedIn() && request.auth.uid == uid;
+        allow write: if false;
       }
     }
 

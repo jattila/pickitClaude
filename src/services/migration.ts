@@ -13,7 +13,6 @@ const BATCH_LIMIT = 400; // stay comfortably under Firestore's 500-write batch c
 export async function migrateGuestDataToCloud(uid: string): Promise<void> {
   const db = await getDb();
   const lists = await db.getAllAsync<any>('SELECT * FROM lists');
-  const catalog = await db.getAllAsync<any>('SELECT * FROM catalog');
 
   let batch = writeBatch(firestore);
   let opCount = 0;
@@ -45,8 +44,6 @@ export async function migrateGuestDataToCloud(uid: string): Promise<void> {
   for (const list of lists) {
     const items = await db.getAllAsync<any>('SELECT * FROM items WHERE listId = ?', [list.id]);
     itemsByList.set(list.id, items);
-    const activeItemCount = items.filter((i) => !i.checked).length;
-    const boughtItemCount = items.filter((i) => i.checked).length;
 
     const listRef = doc(firestore, 'lists', list.id);
     if (
@@ -55,8 +52,10 @@ export async function migrateGuestDataToCloud(uid: string): Promise<void> {
           name: list.name,
           groupId: null,
           ownerId: uid,
-          activeItemCount,
-          boughtItemCount,
+          // Counters start at 0 — the onItemCreated trigger increments them as
+          // the migrated items land, so setting them here would double-count.
+          activeItemCount: 0,
+          boughtItemCount: 0,
           lastActivityAt: list.updatedAt,
           createdAt: list.createdAt,
           updatedAt: list.updatedAt,
@@ -94,24 +93,8 @@ export async function migrateGuestDataToCloud(uid: string): Promise<void> {
   }
   await flush();
 
-  for (const entry of catalog) {
-    const catalogRef = doc(firestore, 'users', uid, 'catalog', entry.id);
-    if (
-      addOp(() =>
-        batch.set(catalogRef, {
-          name: entry.name,
-          normalizedName: entry.normalizedName,
-          usageCount: entry.usageCount,
-          lastUsedAt: entry.lastUsedAt,
-          createdAt: entry.createdAt,
-        })
-      )
-    ) {
-      await flush();
-    }
-  }
-
-  await flush();
+  // The personal catalog is rebuilt server-side by the onItemCreated trigger as
+  // the migrated items land, so there's nothing to copy up here.
 
   // Carry the guest's "quick add" default list reference over too, otherwise
   // getOrCreateDefaultList() won't find it post-migration and will spin up a
