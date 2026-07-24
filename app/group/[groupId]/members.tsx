@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { FlatList, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useGroupMembers } from '../../../src/hooks/useGroupMembers';
+import { useGroups } from '../../../src/hooks/useGroups';
 import { createInvite } from '../../../src/services/groups';
 
 export default function GroupMembersScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const { members, loading } = useGroupMembers(groupId);
+  const { groups } = useGroups();
+  const group = groups.find((g) => g.id === groupId);
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,8 +18,9 @@ export default function GroupMembersScreen() {
     setCreatingInvite(true);
     try {
       const code = await createInvite(groupId);
+      const groupName = group?.name ?? 'a csoportomhoz';
       await Share.share({
-        message: `Csatlakozz a bevásárlólista-csoportomhoz a PickIt appban!\n\npickit://join/${code}\n\nVagy add meg ezt a kódot: ${code}`,
+        message: `Csatlakozz a(z) "${groupName}" csoporthoz a PickIt appban!\n\npickit://join/${code}\n\nVagy add meg ezt a kódot: ${code}`,
       });
     } catch (e: any) {
       setError(e?.message ?? 'Nem sikerült meghívót létrehozni.');
