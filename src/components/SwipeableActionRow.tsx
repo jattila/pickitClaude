@@ -39,6 +39,7 @@ export function SwipeableActionRow({ children, actions, onPress }: SwipeableActi
       ref={swipeableRef}
       friction={2}
       rightThreshold={40}
+      overshootRight={false}
       renderRightActions={() => (
         <View style={styles.rightActions}>
           {actions.map((action) => (
