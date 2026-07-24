@@ -84,6 +84,24 @@ class LocalListsRepositoryImpl implements ListsRepository {
     return { id, name: name.trim(), groupId: null, createdAt: now, updatedAt: now };
   }
 
+  async getOrCreateDefaultList(): Promise<ShoppingList> {
+    const db = await getDb();
+    const metaRow = await db.getFirstAsync<{ value: string }>(
+      "SELECT value FROM meta WHERE key = 'defaultListId'"
+    );
+    if (metaRow) {
+      const existing = await db.getFirstAsync<any>('SELECT * FROM lists WHERE id = ?', [metaRow.value]);
+      if (existing) return toShoppingList(existing);
+    }
+
+    const list = await this.createList('Bevásárlólista');
+    await db.runAsync(
+      "INSERT INTO meta (key, value) VALUES ('defaultListId', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+      [list.id]
+    );
+    return list;
+  }
+
   async renameList(listId: string, name: string): Promise<void> {
     const db = await getDb();
     await db.runAsync('UPDATE lists SET name = ?, updatedAt = ? WHERE id = ?', [

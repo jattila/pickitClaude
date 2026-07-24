@@ -1,20 +1,23 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useLists } from '../src/hooks/useLists';
 import { useGroups } from '../src/hooks/useGroups';
+import { useQuickAdd } from '../src/hooks/useQuickAdd';
 import { useAuthStore } from '../src/store/authStore';
 import { ListRow } from '../src/components/ListRow';
 import { GroupRow } from '../src/components/GroupRow';
+import { ItemNameInput } from '../src/components/ItemNameInput';
 import { PromptDialog } from '../src/components/PromptDialog';
 import { ConfirmDialog } from '../src/components/ConfirmDialog';
-import type { Group, ShoppingList } from '../src/data/types';
+import type { Group, ShoppingItem, ShoppingList } from '../src/data/types';
 
 export default function ListsOverviewScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const { lists, loading, createList, renameList, deleteList } = useLists();
   const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
+  const { listId: quickAddListId, addItem: quickAddItem, restoreItem: quickAddRestoreItem } = useQuickAdd();
 
   const [creatingList, setCreatingList] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
@@ -22,11 +25,20 @@ export default function ListsOverviewScreen() {
   const [deletingList, setDeletingList] = useState<ShoppingList | null>(null);
   const [renamingGroup, setRenamingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
+  const [pendingRestoreConfirm, setPendingRestoreConfirm] = useState<ShoppingItem | null>(null);
 
   const nothingToShow = !loading && lists.length === 0 && groups.length === 0;
 
+  const handleQuickAdd = async (name: string) => {
+    const { wasAlreadyChecked, item } = await quickAddItem(name);
+    if (wasAlreadyChecked) setPendingRestoreConfirm(item);
+  };
+
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <Stack.Screen
         options={{
           title: 'PickIt',
@@ -41,7 +53,9 @@ export default function ListsOverviewScreen() {
       {nothingToShow ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Nincs még listád</Text>
-          <Text style={styles.emptyText}>Hozz létre egy bevásárlólistát az alábbi gombbal.</Text>
+          <Text style={styles.emptyText}>
+            Írj be egy tételt lent, vagy hozz létre egy listát az alábbi gombbal.
+          </Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -86,6 +100,8 @@ export default function ListsOverviewScreen() {
           )}
         </ScrollView>
       )}
+
+      {quickAddListId ? <ItemNameInput listId={quickAddListId} onSubmit={handleQuickAdd} /> : null}
 
       <Pressable style={styles.fab} onPress={() => setCreatingList(true)}>
         <Text style={styles.fabLabel}>+ Új lista</Text>
@@ -160,7 +176,21 @@ export default function ListsOverviewScreen() {
           setDeletingGroup(null);
         }}
       />
-    </View>
+
+      <ConfirmDialog
+        visible={!!pendingRestoreConfirm}
+        title="Ezt már megvették"
+        message={`"${pendingRestoreConfirm?.name}" már be van jelölve mint megvéve${
+          pendingRestoreConfirm?.checkedByName ? ` (${pendingRestoreConfirm.checkedByName})` : ''
+        }. Visszateszed a listára?`}
+        confirmLabel="Visszateszem"
+        onCancel={() => setPendingRestoreConfirm(null)}
+        onConfirm={() => {
+          if (pendingRestoreConfirm) quickAddRestoreItem(pendingRestoreConfirm.id);
+          setPendingRestoreConfirm(null);
+        }}
+      />
+    </KeyboardAvoidingView>
   );
 }
 
@@ -170,7 +200,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   scrollContent: {
-    paddingBottom: 96,
+    paddingBottom: 16,
   },
   emptyState: {
     flex: 1,
@@ -224,7 +254,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 28,
+    bottom: 84,
     backgroundColor: '#4A90D9',
     borderRadius: 24,
     paddingVertical: 14,
