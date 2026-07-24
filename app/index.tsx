@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useLists } from '../src/hooks/useLists';
 import { useGroups } from '../src/hooks/useGroups';
 import { useDefaultListId } from '../src/hooks/useQuickAdd';
@@ -16,6 +17,7 @@ import type { Group, ShoppingList } from '../src/data/types';
 
 export default function ListsOverviewScreen() {
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const user = useAuthStore((state) => state.user);
   const defaultListId = useDefaultListId();
   const { lists: allLists, loading, createList, renameList, deleteList } = useLists();
@@ -46,7 +48,11 @@ export default function ListsOverviewScreen() {
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
+    >
       <Stack.Screen
         options={{
           title: 'PickIt',
