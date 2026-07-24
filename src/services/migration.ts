@@ -35,8 +35,16 @@ export async function migrateGuestDataToCloud(uid: string): Promise<void> {
     }
   };
 
+  // Lists must be committed *before* their items: the items/{itemId} security
+  // rule does a get() on the parent list doc, and within a single atomic
+  // batch that get() only sees the database state from before the batch —
+  // writing a list and its own items in the same batch makes the parent look
+  // like it doesn't exist yet, and the whole batch gets rejected.
+  const itemsByList = new Map<string, any[]>();
+
   for (const list of lists) {
     const items = await db.getAllAsync<any>('SELECT * FROM items WHERE listId = ?', [list.id]);
+    itemsByList.set(list.id, items);
     const activeItemCount = items.filter((i) => !i.checked).length;
     const boughtItemCount = items.filter((i) => i.checked).length;
 
@@ -57,7 +65,11 @@ export async function migrateGuestDataToCloud(uid: string): Promise<void> {
     ) {
       await flush();
     }
+  }
+  await flush(); // ensure every list doc is committed before any item references it
 
+  for (const list of lists) {
+    const items = itemsByList.get(list.id) ?? [];
     for (const item of items) {
       const itemRef = doc(firestore, 'lists', list.id, 'items', item.id);
       if (
@@ -80,6 +92,7 @@ export async function migrateGuestDataToCloud(uid: string): Promise<void> {
       }
     }
   }
+  await flush();
 
   for (const entry of catalog) {
     const catalogRef = doc(firestore, 'users', uid, 'catalog', entry.id);
