@@ -62,9 +62,9 @@ export default function GroupListsScreen() {
         title="Új lista neve"
         placeholder="pl. Heti bevásárlás"
         onCancel={() => setCreating(false)}
-        onConfirm={(name) => {
+        onConfirm={async (name) => {
+          await createList(name);
           setCreating(false);
-          createList(name);
         }}
       />
 
@@ -73,8 +73,8 @@ export default function GroupListsScreen() {
         title="Lista átnevezése"
         initialValue={renamingList?.name ?? ''}
         onCancel={() => setRenamingList(null)}
-        onConfirm={(name) => {
-          if (renamingList) FirestoreListsRepository.renameList(renamingList.id, name);
+        onConfirm={async (name) => {
+          if (renamingList) await FirestoreListsRepository.renameList(renamingList.id, name);
           setRenamingList(null);
         }}
       />

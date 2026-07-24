@@ -16,7 +16,7 @@ import {
   type QueryDocumentSnapshot,
 } from '@react-native-firebase/firestore';
 import { firestore, auth } from '../../services/firebase';
-import { toDisplayName, toItemId } from '../../services/normalize';
+import { normalizeName, toDisplayName, toItemId } from '../../services/normalize';
 import type { ListsRepository } from '../ListsRepository';
 import type { AddItemResult, CatalogEntry, ShoppingItem, ShoppingList } from '../types';
 
@@ -78,8 +78,28 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     return onSnapshot(q, (snap) => onChange(snap.docs.map(toShoppingList)));
   }
 
-  async createList(name: string, groupId: string | null = null): Promise<ShoppingList> {
+  /** Checks for a name collision among sibling lists in the same scope (personal, or a given group). */
+  private async listNameExists(groupId: string | null, name: string, excludeListId?: string): Promise<boolean> {
     const uid = requireUid();
+    const q = groupId
+      ? query(collection(firestore, 'lists'), where('groupId', '==', groupId))
+      : query(collection(firestore, 'lists'), where('ownerId', '==', uid), where('groupId', '==', null));
+    const snap = await getDocs(q);
+    const target = normalizeName(name);
+    return snap.docs.some(
+      (d) => d.id !== excludeListId && normalizeName((d.data() as DocumentData).name) === target
+    );
+  }
+
+  async createList(
+    name: string,
+    groupId: string | null = null,
+    skipDuplicateCheck = false
+  ): Promise<ShoppingList> {
+    const uid = requireUid();
+    if (!skipDuplicateCheck && (await this.listNameExists(groupId, name))) {
+      throw new Error('Már van ilyen nevű lista ebben a körben.');
+    }
     const now = Date.now();
     const ref = doc(collection(firestore, 'lists'));
     const list = {
@@ -107,12 +127,17 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
       if (existing.exists()) return toShoppingList(existing as QueryDocumentSnapshot<DocumentData>);
     }
 
-    const list = await this.createList('Bevásárlólista');
+    const list = await this.createList('Bevásárlólista', null, true);
     await setDoc(userRef, { defaultListId: list.id }, { merge: true });
     return list;
   }
 
   async renameList(listId: string, name: string): Promise<void> {
+    const current = await getDoc(doc(firestore, 'lists', listId));
+    const groupId = current.exists() ? ((current.data() as DocumentData).groupId ?? null) : null;
+    if (await this.listNameExists(groupId, name, listId)) {
+      throw new Error('Már van ilyen nevű lista ebben a körben.');
+    }
     await updateDoc(doc(firestore, 'lists', listId), { name: name.trim(), updatedAt: Date.now() });
   }
 

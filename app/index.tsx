@@ -112,9 +112,9 @@ export default function ListsOverviewScreen() {
         title="Új lista neve"
         placeholder="pl. Heti bevásárlás"
         onCancel={() => setCreatingList(false)}
-        onConfirm={(name) => {
+        onConfirm={async (name) => {
+          await createList(name);
           setCreatingList(false);
-          createList(name);
         }}
       />
 
@@ -123,9 +123,9 @@ export default function ListsOverviewScreen() {
         title="Új csoport neve"
         placeholder="pl. Család"
         onCancel={() => setCreatingGroup(false)}
-        onConfirm={(name) => {
+        onConfirm={async (name) => {
+          await createGroup(name);
           setCreatingGroup(false);
-          createGroup(name);
         }}
       />
 
@@ -134,8 +134,8 @@ export default function ListsOverviewScreen() {
         title="Lista átnevezése"
         initialValue={renamingList?.name ?? ''}
         onCancel={() => setRenamingList(null)}
-        onConfirm={(name) => {
-          if (renamingList) renameList(renamingList.id, name);
+        onConfirm={async (name) => {
+          if (renamingList) await renameList(renamingList.id, name);
           setRenamingList(null);
         }}
       />
@@ -158,8 +158,8 @@ export default function ListsOverviewScreen() {
         title="Csoport átnevezése"
         initialValue={renamingGroup?.name ?? ''}
         onCancel={() => setRenamingGroup(null)}
-        onConfirm={(name) => {
-          if (renamingGroup) renameGroup(renamingGroup.id, name);
+        onConfirm={async (name) => {
+          if (renamingGroup) await renameGroup(renamingGroup.id, name);
           setRenamingGroup(null);
         }}
       />

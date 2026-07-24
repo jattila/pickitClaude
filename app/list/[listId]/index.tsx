@@ -130,8 +130,8 @@ export default function ListDetailScreen() {
         title="Tétel átnevezése"
         initialValue={renamingItem?.name ?? ''}
         onCancel={() => setRenamingItem(null)}
-        onConfirm={(name) => {
-          if (renamingItem) renameItem(renamingItem.id, name);
+        onConfirm={async (name) => {
+          if (renamingItem) await renameItem(renamingItem.id, name);
           setRenamingItem(null);
         }}
       />

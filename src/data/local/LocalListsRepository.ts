@@ -1,5 +1,5 @@
 import { getDb } from './db';
-import { toDisplayName, toItemId } from '../../services/normalize';
+import { normalizeName, toDisplayName, toItemId } from '../../services/normalize';
 import type { ListsRepository } from '../ListsRepository';
 import type { AddItemResult, CatalogEntry, ShoppingItem, ShoppingList } from '../types';
 
@@ -69,9 +69,21 @@ class LocalListsRepositoryImpl implements ListsRepository {
     return () => this.listsListeners.delete(listener);
   }
 
-  async createList(name: string, _groupId: string | null = null): Promise<ShoppingList> {
+  async createList(
+    name: string,
+    _groupId: string | null = null,
+    skipDuplicateCheck = false
+  ): Promise<ShoppingList> {
     // Guests have no groups — always creates a personal list regardless of _groupId.
     const db = await getDb();
+
+    if (!skipDuplicateCheck) {
+      const existing = await this.getLists();
+      if (existing.some((l) => normalizeName(l.name) === normalizeName(name))) {
+        throw new Error('Már van ilyen nevű listád.');
+      }
+    }
+
     const now = Date.now();
     const id = generateId('list');
     await db.runAsync('INSERT INTO lists (id, name, createdAt, updatedAt) VALUES (?, ?, ?, ?)', [
@@ -94,7 +106,7 @@ class LocalListsRepositoryImpl implements ListsRepository {
       if (existing) return toShoppingList(existing);
     }
 
-    const list = await this.createList('Bevásárlólista');
+    const list = await this.createList('Bevásárlólista', null, true);
     await db.runAsync(
       "INSERT INTO meta (key, value) VALUES ('defaultListId', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
       [list.id]
@@ -104,6 +116,10 @@ class LocalListsRepositoryImpl implements ListsRepository {
 
   async renameList(listId: string, name: string): Promise<void> {
     const db = await getDb();
+    const existing = await this.getLists();
+    if (existing.some((l) => l.id !== listId && normalizeName(l.name) === normalizeName(name))) {
+      throw new Error('Már van ilyen nevű listád.');
+    }
     await db.runAsync('UPDATE lists SET name = ?, updatedAt = ? WHERE id = ?', [
       name.trim(),
       Date.now(),

@@ -1,4 +1,4 @@
-import { doc, writeBatch } from '@react-native-firebase/firestore';
+import { doc, setDoc, writeBatch } from '@react-native-firebase/firestore';
 import { firestore } from './firebase';
 import { getDb } from '../data/local/db';
 
@@ -112,6 +112,16 @@ export async function migrateGuestDataToCloud(uid: string): Promise<void> {
   }
 
   await flush();
+
+  // Carry the guest's "quick add" default list reference over too, otherwise
+  // getOrCreateDefaultList() won't find it post-migration and will spin up a
+  // brand new (empty) "Bevásárlólista" alongside the one just migrated.
+  const defaultListMeta = await db.getFirstAsync<{ value: string }>(
+    "SELECT value FROM meta WHERE key = 'defaultListId'"
+  );
+  if (defaultListMeta) {
+    await setDoc(doc(firestore, 'users', uid), { defaultListId: defaultListMeta.value }, { merge: true });
+  }
 
   await db.execAsync('DELETE FROM items; DELETE FROM lists; DELETE FROM catalog;');
 }

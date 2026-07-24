@@ -8,7 +8,7 @@ interface PromptDialogProps {
   placeholder?: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  onConfirm: (value: string) => void;
+  onConfirm: (value: string) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -23,14 +23,28 @@ export function PromptDialog({
   onCancel,
 }: PromptDialogProps) {
   const [value, setValue] = useState(initialValue);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (visible) setValue(initialValue);
+    if (visible) {
+      setValue(initialValue);
+      setError(null);
+    }
   }, [visible, initialValue]);
 
-  const submit = () => {
+  const submit = async () => {
     const trimmed = value.trim();
-    if (trimmed) onConfirm(trimmed);
+    if (!trimmed) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await onConfirm(trimmed);
+    } catch (e: any) {
+      setError(e?.message ?? 'Nem sikerült menteni.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -40,19 +54,25 @@ export function PromptDialog({
           <Text style={styles.title}>{title}</Text>
           <TextInput
             value={value}
-            onChangeText={setValue}
+            onChangeText={(text) => {
+              setValue(text);
+              if (error) setError(null);
+            }}
             placeholder={placeholder}
             style={styles.input}
             autoFocus
             onSubmitEditing={submit}
             returnKeyType="done"
           />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
           <View style={styles.buttonRow}>
             <Pressable style={styles.button} onPress={onCancel}>
               <Text style={styles.buttonLabel}>{cancelLabel}</Text>
             </Pressable>
-            <Pressable style={styles.button} onPress={submit}>
-              <Text style={[styles.buttonLabel, styles.buttonLabelPrimary]}>{confirmLabel}</Text>
+            <Pressable style={styles.button} onPress={submit} disabled={submitting}>
+              <Text style={[styles.buttonLabel, styles.buttonLabelPrimary]}>
+                {submitting ? 'Mentés…' : confirmLabel}
+              </Text>
             </Pressable>
           </View>
         </Pressable>
@@ -88,12 +108,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 15,
-    marginBottom: 16,
+  },
+  error: {
+    color: '#D9534F',
+    fontSize: 13,
+    marginTop: 8,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 20,
+    marginTop: 16,
   },
   button: {
     paddingVertical: 6,
