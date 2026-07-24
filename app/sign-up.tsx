@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, updateProfile } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
@@ -28,7 +28,13 @@ export default function SignUpScreen() {
       await migrateGuestDataToCloud(credential.user.uid);
       router.replace('/');
     } catch (e: any) {
-      setError(e?.message ?? 'Nem sikerült a regisztráció.');
+      if (e?.code === 'auth/email-already-in-use') {
+        setError('Ezzel az email címmel már van fiók. Próbálj bejelentkezni helyette.');
+      } else if (e?.code === 'auth/invalid-email') {
+        setError('Érvénytelen email cím.');
+      } else {
+        setError('Nem sikerült a regisztráció.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -36,43 +42,45 @@ export default function SignUpScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <Text style={styles.title}>Regisztráció</Text>
-      <Text style={styles.subtitle}>
-        A meglévő listáid és tételeid automatikusan átkerülnek a fiókodba.
-      </Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>Regisztráció</Text>
+        <Text style={styles.subtitle}>
+          A meglévő listáid és tételeid automatikusan átkerülnek a fiókodba.
+        </Text>
 
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder="Neved"
-        autoCapitalize="words"
-        style={styles.input}
-      />
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email cím"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={styles.input}
-      />
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Jelszó (min. 6 karakter)"
-        secureTextEntry
-        style={styles.input}
-      />
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Neved"
+          autoCapitalize="words"
+          style={styles.input}
+        />
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email cím"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          style={styles.input}
+        />
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Jelszó (min. 6 karakter)"
+          secureTextEntry
+          style={styles.input}
+        />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable style={styles.button} onPress={submit} disabled={submitting}>
-        <Text style={styles.buttonLabel}>{submitting ? 'Regisztráció…' : 'Regisztráció'}</Text>
-      </Pressable>
+        <Pressable style={styles.button} onPress={submit} disabled={submitting}>
+          <Text style={styles.buttonLabel}>{submitting ? 'Regisztráció…' : 'Regisztráció'}</Text>
+        </Pressable>
 
-      <Pressable onPress={() => router.push('/sign-in')}>
-        <Text style={styles.link}>Már van fiókom, bejelentkezem</Text>
-      </Pressable>
+        <Pressable onPress={() => router.push('/sign-in')}>
+          <Text style={styles.link}>Már van fiókom, bejelentkezem</Text>
+        </Pressable>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -80,10 +88,13 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'white',
+  },
+  scrollContent: {
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: 'white',
   },
   title: {
     fontSize: 24,

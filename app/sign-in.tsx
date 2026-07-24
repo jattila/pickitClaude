@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
@@ -26,33 +26,35 @@ export default function SignInScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <Text style={styles.title}>Bejelentkezés</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>Bejelentkezés</Text>
 
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email cím"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={styles.input}
-      />
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Jelszó"
-        secureTextEntry
-        style={styles.input}
-      />
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email cím"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          style={styles.input}
+        />
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Jelszó"
+          secureTextEntry
+          style={styles.input}
+        />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable style={styles.button} onPress={submit} disabled={submitting}>
-        <Text style={styles.buttonLabel}>{submitting ? 'Belépés…' : 'Bejelentkezés'}</Text>
-      </Pressable>
+        <Pressable style={styles.button} onPress={submit} disabled={submitting}>
+          <Text style={styles.buttonLabel}>{submitting ? 'Belépés…' : 'Bejelentkezés'}</Text>
+        </Pressable>
 
-      <Pressable onPress={() => router.push('/forgot-password')}>
-        <Text style={styles.link}>Elfelejtett jelszó</Text>
-      </Pressable>
+        <Pressable onPress={() => router.push('/forgot-password')}>
+          <Text style={styles.link}>Elfelejtett jelszó</Text>
+        </Pressable>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -60,10 +62,13 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'white',
+  },
+  scrollContent: {
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: 'white',
   },
   title: {
     fontSize: 24,
