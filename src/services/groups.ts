@@ -6,12 +6,14 @@ import {
   onSnapshot,
   orderBy,
   query,
+  setDoc,
   updateDoc,
   where,
   writeBatch,
   type DocumentData,
   type QueryDocumentSnapshot,
 } from '@react-native-firebase/firestore';
+import type { ShoppingList } from '../data/types';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { firestore, functions, auth } from './firebase';
 import type { Group, GroupMember } from '../data/types';
@@ -189,4 +191,42 @@ export function subscribeGroupLists(
     orderBy('updatedAt', 'desc')
   );
   return onSnapshot(q, (snap) => onChange(snap.docs.map(toGroupList)));
+}
+
+/** Deterministic doc id for a group's hidden "loose items" list, so concurrent
+ * first-opens by different members resolve the same list instead of duplicating. */
+function groupDefaultListId(groupId: string): string {
+  return `gdefault_${groupId}`;
+}
+
+/**
+ * The group's shared quick-add list (created on first use). Like the personal
+ * default list it's never shown in the group's list section — its items surface
+ * directly on the group screen so members can jot loose items without picking a list.
+ */
+export async function getOrCreateGroupDefaultList(groupId: string): Promise<ShoppingList> {
+  const uid = requireUid();
+  const ref = doc(firestore, 'lists', groupDefaultListId(groupId));
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const data = snap.data() as DocumentData;
+    return { id: ref.id, name: data.name, groupId, createdAt: data.createdAt, updatedAt: data.updatedAt };
+  }
+
+  const now = Date.now();
+  await setDoc(ref, {
+    name: 'Bevásárlólista',
+    groupId,
+    ownerId: uid,
+    activeItemCount: 0,
+    boughtItemCount: 0,
+    lastActivityAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return { id: ref.id, name: 'Bevásárlólista', groupId, createdAt: now, updatedAt: now };
+}
+
+export function isGroupDefaultList(groupId: string, listId: string): boolean {
+  return listId === groupDefaultListId(groupId);
 }

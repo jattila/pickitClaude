@@ -1,30 +1,59 @@
-import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Fragment, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useGroupLists } from '../../../src/hooks/useGroupLists';
 import { useGroups } from '../../../src/hooks/useGroups';
+import { useGroupDefaultListId } from '../../../src/hooks/useGroupDefaultListId';
+import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
 import { ListRow } from '../../../src/components/ListRow';
+import { ItemRow } from '../../../src/components/ItemRow';
+import { ItemNameInput } from '../../../src/components/ItemNameInput';
 import { PromptDialog } from '../../../src/components/PromptDialog';
 import { ConfirmDialog } from '../../../src/components/ConfirmDialog';
 import { FirestoreListsRepository } from '../../../src/data/cloud/FirestoreListsRepository';
+import { isGroupDefaultList } from '../../../src/services/groups';
 import type { ShoppingList } from '../../../src/data/types';
 
 export default function GroupListsScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const router = useRouter();
-  const { lists, loading, createList } = useGroupLists(groupId);
+  const headerHeight = useHeaderHeight();
+  const { lists: allLists, loading, createList } = useGroupLists(groupId);
   const { groups } = useGroups();
   const group = groups.find((g) => g.id === groupId);
+
+  const defaultListId = useGroupDefaultListId(groupId);
+  const {
+    scrollViewRef,
+    sections,
+    scrollTargetId,
+    handleTargetLayout,
+    handleAdd,
+    setRestoreRequest,
+    setRenamingItem,
+    setDeletingItem,
+    checkItem,
+    dialogs: itemDialogs,
+  } = useItemsPanel(defaultListId);
+
+  // The shared quick-add list is hidden from the group's list section — its
+  // items surface directly below instead.
+  const lists = allLists.filter((l) => !isGroupDefaultList(groupId, l.id));
 
   const [creating, setCreating] = useState(false);
   const [renamingList, setRenamingList] = useState<ShoppingList | null>(null);
   const [deletingList, setDeletingList] = useState<ShoppingList | null>(null);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
+    >
       <Stack.Screen
         options={{
-          title: group ? `${group.name} listái` : 'Csoport listái',
+          title: group?.name ?? 'Csoport',
           headerRight: () => (
             <Pressable onPress={() => router.push(`/group/${groupId}/members`)} hitSlop={8}>
               <Text style={styles.membersLink}>Tagok</Text>
@@ -33,29 +62,46 @@ export default function GroupListsScreen() {
         }}
       />
 
-      {!loading && lists.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Nincs még lista ebben a csoportban</Text>
-          <Text style={styles.emptyText}>Hozz létre egyet az alábbi gombbal.</Text>
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeaderInline}>Listák és tételek</Text>
+          <Pressable onPress={() => setCreating(true)} hitSlop={8}>
+            <Text style={styles.sectionAction}>+ Új lista</Text>
+          </Pressable>
         </View>
-      ) : (
-        <FlatList
-          data={lists}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
+
+        {!loading &&
+          lists.map((item) => (
             <ListRow
+              key={item.id}
               list={item}
               onPress={() => router.push(`/list/${item.id}`)}
               onRenameRequest={() => setRenamingList(item)}
               onDeleteRequest={() => setDeletingList(item)}
             />
-          )}
-        />
-      )}
+          ))}
 
-      <Pressable style={styles.fab} onPress={() => setCreating(true)}>
-        <Text style={styles.fabLabel}>+ Új lista</Text>
-      </Pressable>
+        {sections.map((section) => (
+          <Fragment key={section.title ?? 'active'}>
+            {section.title ? <Text style={styles.sectionHeader}>{section.title}</Text> : null}
+            {section.data.map((item) => (
+              <View key={item.id} onLayout={item.id === scrollTargetId ? handleTargetLayout : undefined}>
+                <ItemRow
+                  item={item}
+                  onCheck={() => checkItem(item.id)}
+                  onRequestRestore={() => setRestoreRequest(item)}
+                  onRenameRequest={() => setRenamingItem(item)}
+                  onDeleteRequest={() => setDeletingItem(item)}
+                />
+              </View>
+            ))}
+          </Fragment>
+        ))}
+      </ScrollView>
+
+      {defaultListId ? <ItemNameInput listId={defaultListId} onSubmit={handleAdd} /> : null}
+
+      {itemDialogs}
 
       <PromptDialog
         visible={creating}
@@ -91,7 +137,7 @@ export default function GroupListsScreen() {
           setDeletingList(null);
         }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -105,39 +151,35 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingHorizontal: 4,
   },
-  emptyState: {
-    flex: 1,
+  scrollContent: {
+    paddingBottom: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    gap: 6,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#777',
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 28,
-    backgroundColor: '#4A90D9',
-    borderRadius: 24,
-    paddingVertical: 14,
     paddingHorizontal: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    paddingTop: 20,
+    paddingBottom: 6,
   },
-  fabLabel: {
-    color: 'white',
+  sectionHeaderInline: {
+    fontSize: 13,
     fontWeight: '700',
-    fontSize: 15,
+    color: '#888',
+    textTransform: 'uppercase',
+  },
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#888',
+    textTransform: 'uppercase',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 6,
+  },
+  sectionAction: {
+    color: '#4A90D9',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
