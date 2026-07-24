@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react';
 import { useRepository } from '../data/useRepository';
 import type { ShoppingItem } from '../data/types';
 
-export function useListItems(listId: string) {
+export function useListItems(listId: string | null) {
   const repo = useRepository();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!listId) {
+      setItems([]);
+      setLoading(true);
+      return;
+    }
     setLoading(true);
     const unsubscribe = repo.subscribeItems(listId, (next) => {
       setItems(next);
@@ -25,11 +30,25 @@ export function useListItems(listId: string) {
     activeItems,
     checkedItems,
     loading,
-    addItem: (rawName: string, quantity?: string | null) => repo.addItem(listId, rawName, quantity),
-    renameItem: (itemId: string, newName: string) => repo.renameItem(listId, itemId, newName),
-    checkItem: (itemId: string, checkedByName: string | null = null) =>
-      repo.checkItem(listId, itemId, checkedByName),
-    restoreItem: (itemId: string) => repo.restoreItem(listId, itemId),
-    deleteItem: (itemId: string) => repo.deleteItem(listId, itemId),
+    addItem: (rawName: string, quantity?: string | null) => {
+      if (!listId) throw new Error('Nincs kiválasztott lista.');
+      return repo.addItem(listId, rawName, quantity);
+    },
+    renameItem: (itemId: string, newName: string) => {
+      if (!listId) throw new Error('Nincs kiválasztott lista.');
+      return repo.renameItem(listId, itemId, newName);
+    },
+    checkItem: (itemId: string, checkedByName: string | null = null) => {
+      if (!listId) throw new Error('Nincs kiválasztott lista.');
+      return repo.checkItem(listId, itemId, checkedByName);
+    },
+    restoreItem: (itemId: string) => {
+      if (!listId) throw new Error('Nincs kiválasztott lista.');
+      return repo.restoreItem(listId, itemId);
+    },
+    deleteItem: (itemId: string) => {
+      if (!listId) throw new Error('Nincs kiválasztott lista.');
+      return repo.deleteItem(listId, itemId);
+    },
   };
 }

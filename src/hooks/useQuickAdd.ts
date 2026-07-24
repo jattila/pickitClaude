@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRepository } from '../data/useRepository';
 
-/** Resolves the personal "quick add" list (creating it on first use) for the overview screen's input. */
-export function useQuickAdd() {
+/** Resolves (creating on first use) the hidden personal list backing the overview screen's quick-add. */
+export function useDefaultListId(): string | null {
   const repo = useRepository();
   const [listId, setListId] = useState<string | null>(null);
 
@@ -17,15 +17,5 @@ export function useQuickAdd() {
     };
   }, [repo]);
 
-  return {
-    listId,
-    addItem: (name: string, quantity?: string | null) => {
-      if (!listId) throw new Error('A gyors hozzáadás listája még nem áll készen.');
-      return repo.addItem(listId, name, quantity);
-    },
-    restoreItem: (itemId: string) => {
-      if (!listId) throw new Error('A gyors hozzáadás listája még nem áll készen.');
-      return repo.restoreItem(listId, itemId);
-    },
-  };
+  return listId;
 }
