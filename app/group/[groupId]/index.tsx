@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useGroupLists } from '../../../src/hooks/useGroupLists';
+import { useGroups } from '../../../src/hooks/useGroups';
 import { ListRow } from '../../../src/components/ListRow';
 import { PromptDialog } from '../../../src/components/PromptDialog';
 import { ConfirmDialog } from '../../../src/components/ConfirmDialog';
@@ -12,6 +13,8 @@ export default function GroupListsScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const router = useRouter();
   const { lists, loading, createList } = useGroupLists(groupId);
+  const { groups } = useGroups();
+  const group = groups.find((g) => g.id === groupId);
 
   const [creating, setCreating] = useState(false);
   const [renamingList, setRenamingList] = useState<ShoppingList | null>(null);
@@ -21,7 +24,7 @@ export default function GroupListsScreen() {
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          title: 'Csoport listái',
+          title: group ? `${group.name} listái` : 'Csoport listái',
           headerRight: () => (
             <Pressable onPress={() => router.push(`/group/${groupId}/members`)} hitSlop={8}>
               <Text style={styles.membersLink}>Tagok</Text>
