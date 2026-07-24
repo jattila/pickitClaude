@@ -152,11 +152,10 @@ export async function redeemInvite(code: string): Promise<RedeemInviteResult> {
 }
 
 export async function getInvitePreview(code: string): Promise<{ groupName: string } | null> {
-  const snap = await getDoc(doc(firestore, 'invites', code.trim().toUpperCase()));
-  if (!snap.exists()) return null;
-  const data = snap.data() as DocumentData;
-  if (data.revoked || data.expiresAt < Date.now()) return null;
-  return { groupName: data.groupName };
+  const call = httpsCallable<{ code: string }, { groupName: string | null }>(functions, 'getInvitePreview');
+  const result = await call({ code: code.trim().toUpperCase() });
+  if (!result.data.groupName) return null;
+  return { groupName: result.data.groupName };
 }
 
 function toGroupList(snap: QueryDocumentSnapshot<DocumentData>) {

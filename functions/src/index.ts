@@ -4,3 +4,4 @@ initializeApp();
 
 export { createInvite } from './groups/createInvite';
 export { redeemInvite } from './groups/redeemInvite';
+export { getInvitePreview } from './groups/getInvitePreview';

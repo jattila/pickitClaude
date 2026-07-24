@@ -72,11 +72,11 @@ service cloud.firestore {
       }
     }
 
-    // Read-only for any signed-in user who has the code (that's the point of
-    // an invite code); all writes go through the Cloud Functions (Admin SDK).
+    // No direct client access — previewing and redeeming both go through
+    // Cloud Functions (Admin SDK), so the group's *current* name is used
+    // instead of a denormalized snapshot that would go stale on rename.
     match /invites/{code} {
-      allow read: if isSignedIn();
-      allow write: if false;
+      allow read, write: if false;
     }
 
     match /lists/{listId} {
