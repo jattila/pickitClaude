@@ -40,8 +40,9 @@ export function useItemsPanel(listId: string | null) {
     setScrollTargetId(null);
   };
 
-  const sections = [
-    { title: 'Teendő', data: activeItems },
+  // No header for the active items — only the "Megvéve" (bought) section gets one.
+  const sections: { title: string | null; data: ShoppingItem[] }[] = [
+    { title: null, data: activeItems },
     { title: 'Megvéve', data: checkedItems },
   ].filter((section) => section.data.length > 0);
 

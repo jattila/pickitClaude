@@ -30,8 +30,8 @@ export default function ListDetailScreen() {
           </View>
         ) : (
           sections.map((section) => (
-            <Fragment key={section.title}>
-              <Text style={styles.sectionHeader}>{section.title}</Text>
+            <Fragment key={section.title ?? 'active'}>
+              {section.title ? <Text style={styles.sectionHeader}>{section.title}</Text> : null}
               {section.data.map((item) => (
                 <View
                   key={item.id}

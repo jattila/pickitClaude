@@ -108,8 +108,8 @@ export default function ListsOverviewScreen() {
           ))}
 
         {sections.map((section) => (
-          <Fragment key={section.title}>
-            {section.title !== 'Teendő' ? <Text style={styles.sectionHeader}>{section.title}</Text> : null}
+          <Fragment key={section.title ?? 'active'}>
+            {section.title ? <Text style={styles.sectionHeader}>{section.title}</Text> : null}
             {section.data.map((item) => (
               <View key={item.id} onLayout={item.id === scrollTargetId ? handleTargetLayout : undefined}>
                 <ItemRow
