@@ -46,6 +46,7 @@ export default function ListsOverviewScreen() {
   const [deletingList, setDeletingList] = useState<ShoppingList | null>(null);
   const [renamingGroup, setRenamingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
+  const [enteringCode, setEnteringCode] = useState(false);
 
   return (
     <KeyboardAvoidingView
@@ -87,6 +88,9 @@ export default function ListsOverviewScreen() {
                 />
               ))
             )}
+            <Pressable style={styles.joinRow} onPress={() => setEnteringCode(true)}>
+              <Text style={styles.joinLabel}>Csatlakozás egy csoporthoz</Text>
+            </Pressable>
           </>
         ) : null}
 
@@ -128,6 +132,17 @@ export default function ListsOverviewScreen() {
       {defaultListId ? <ItemNameInput listId={defaultListId} onSubmit={handleAdd} /> : null}
 
       {itemDialogs}
+
+      <PromptDialog
+        visible={enteringCode}
+        title="Meghívó kód"
+        placeholder="pl. AB2C3D4E"
+        onCancel={() => setEnteringCode(false)}
+        onConfirm={(code) => {
+          setEnteringCode(false);
+          router.push(`/join/${code.trim().toUpperCase()}`);
+        }}
+      />
 
       <PromptDialog
         visible={creatingList}
@@ -251,5 +266,17 @@ const styles = StyleSheet.create({
     color: '#999',
     paddingHorizontal: 20,
     paddingBottom: 8,
+  },
+  joinRow: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E0E0E0',
+  },
+  joinLabel: {
+    color: '#4A90D9',
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
