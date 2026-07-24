@@ -15,6 +15,10 @@ export interface RowAction {
 interface SwipeableActionRowProps {
   children: ReactNode;
   actions: RowAction[];
+  /** Tap handler for the row itself — passed here (not as a nested Pressable)
+   * so a single Pressable can own both onPress and onLongPress; nesting two
+   * Pressables lets the inner one swallow the touch before onLongPress fires. */
+  onPress?: () => void;
 }
 
 /**
@@ -22,7 +26,7 @@ interface SwipeableActionRowProps {
  * exposing the exact same `actions` — the two interaction paths can never drift
  * apart because they both render from this one list.
  */
-export function SwipeableActionRow({ children, actions }: SwipeableActionRowProps) {
+export function SwipeableActionRow({ children, actions, onPress }: SwipeableActionRowProps) {
   const swipeableRef = useRef<SwipeableMethods>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
 
@@ -53,7 +57,7 @@ export function SwipeableActionRow({ children, actions }: SwipeableActionRowProp
           </View>
         )}
       >
-        <Pressable onLongPress={() => setSheetVisible(true)} delayLongPress={350}>
+        <Pressable onPress={onPress} onLongPress={() => setSheetVisible(true)} delayLongPress={350}>
           {children}
         </Pressable>
       </ReanimatedSwipeable>

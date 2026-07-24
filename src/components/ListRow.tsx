@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SwipeableActionRow } from './SwipeableActionRow';
 import type { ShoppingList } from '../data/types';
 
@@ -12,15 +12,16 @@ interface ListRowProps {
 export function ListRow({ list, onPress, onRenameRequest, onDeleteRequest }: ListRowProps) {
   return (
     <SwipeableActionRow
+      onPress={onPress}
       actions={[
         { key: 'rename', icon: '✏️', label: 'Átnevezés', onPress: onRenameRequest },
         { key: 'delete', icon: '🗑️', label: 'Törlés', onPress: onDeleteRequest, destructive: true },
       ]}
     >
-      <Pressable onPress={onPress} style={styles.row}>
+      <View style={styles.row}>
         <Text style={styles.name}>{list.name}</Text>
         <Text style={styles.chevron}>›</Text>
-      </Pressable>
+      </View>
     </SwipeableActionRow>
   );
 }

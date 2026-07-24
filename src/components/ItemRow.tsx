@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SwipeableActionRow } from './SwipeableActionRow';
 import type { ShoppingItem } from '../data/types';
 
@@ -28,8 +28,8 @@ export function ItemRow({ item, onCheck, onRequestRestore, onRenameRequest, onDe
       ];
 
   return (
-    <SwipeableActionRow actions={actions}>
-      <Pressable onPress={item.checked ? onRequestRestore : onCheck} style={styles.row}>
+    <SwipeableActionRow actions={actions} onPress={item.checked ? onRequestRestore : onCheck}>
+      <View style={styles.row}>
         <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
           {item.checked ? <Text style={styles.checkmark}>✓</Text> : null}
         </View>
@@ -45,7 +45,7 @@ export function ItemRow({ item, onCheck, onRequestRestore, onRenameRequest, onDe
             </Text>
           ) : null}
         </View>
-      </Pressable>
+      </View>
     </SwipeableActionRow>
   );
 }

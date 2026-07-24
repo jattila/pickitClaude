@@ -11,23 +11,26 @@ interface GroupRowProps {
 }
 
 export function GroupRow({ group, isOwner, onPress, onRenameRequest, onDeleteRequest }: GroupRowProps) {
-  const row = (
-    <Pressable onPress={onPress} style={styles.row}>
+  const content = (
+    <View style={styles.row}>
       <Text style={styles.name}>{group.name}</Text>
       <Text style={styles.chevron}>›</Text>
-    </Pressable>
+    </View>
   );
 
-  if (!isOwner) return row;
+  if (!isOwner) {
+    return <Pressable onPress={onPress}>{content}</Pressable>;
+  }
 
   return (
     <SwipeableActionRow
+      onPress={onPress}
       actions={[
         { key: 'rename', icon: '✏️', label: 'Átnevezés', onPress: onRenameRequest },
         { key: 'delete', icon: '🗑️', label: 'Törlés', onPress: onDeleteRequest, destructive: true },
       ]}
     >
-      {row}
+      {content}
     </SwipeableActionRow>
   );
 }
