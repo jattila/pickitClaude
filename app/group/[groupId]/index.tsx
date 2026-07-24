@@ -30,6 +30,7 @@ export default function GroupListsScreen() {
     scrollTargetId,
     handleTargetLayout,
     handleAdd,
+    existingItemIds,
     setRestoreRequest,
     setRenamingItem,
     setDeletingItem,
@@ -99,7 +100,7 @@ export default function GroupListsScreen() {
         ))}
       </ScrollView>
 
-      <ItemNameInput listId={defaultListId} onSubmit={handleAdd} />
+      <ItemNameInput listId={defaultListId} onSubmit={handleAdd} excludeIds={existingItemIds} />
 
       {itemDialogs}
 

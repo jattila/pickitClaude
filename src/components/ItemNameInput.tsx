@@ -6,11 +6,16 @@ import { lowercaseFirstChar, toDisplayName } from '../services/normalize';
 interface ItemNameInputProps {
   listId: string | null;
   onSubmit: (name: string) => void;
+  /** Catalog ids already on the list — filtered out of the suggestions. */
+  excludeIds?: string[];
 }
 
-export function ItemNameInput({ listId, onSubmit }: ItemNameInputProps) {
+export function ItemNameInput({ listId, onSubmit, excludeIds }: ItemNameInputProps) {
   const [value, setValue] = useState('');
-  const suggestions = useCatalogSuggestions(listId, value);
+  const allSuggestions = useCatalogSuggestions(listId, value);
+  const suggestions = excludeIds?.length
+    ? allSuggestions.filter((s) => !excludeIds.includes(s.id))
+    : allSuggestions;
 
   const submit = (name: string) => {
     const trimmed = toDisplayName(name);

@@ -112,12 +112,17 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
     </>
   );
 
+  // Ids already on the list (active or bought) — used to keep the autocomplete
+  // from suggesting products that are already here.
+  const existingItemIds = [...activeItems, ...checkedItems].map((item) => item.id);
+
   return {
     scrollViewRef,
     sections,
     scrollTargetId,
     handleTargetLayout,
     handleAdd,
+    existingItemIds,
     setRestoreRequest,
     setRenamingItem,
     setDeletingItem,

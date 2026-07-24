@@ -12,7 +12,7 @@ export default function ListDetailScreen() {
   const list = useListMeta(listId);
   const headerHeight = useHeaderHeight();
 
-  const { scrollViewRef, sections, scrollTargetId, handleTargetLayout, handleAdd, setRestoreRequest, setRenamingItem, setDeletingItem, checkItem, dialogs } =
+  const { scrollViewRef, sections, scrollTargetId, handleTargetLayout, handleAdd, existingItemIds, setRestoreRequest, setRenamingItem, setDeletingItem, checkItem, dialogs } =
     useItemsPanel(listId);
 
   return (
@@ -51,7 +51,7 @@ export default function ListDetailScreen() {
         )}
       </ScrollView>
 
-      <ItemNameInput listId={listId} onSubmit={handleAdd} />
+      <ItemNameInput listId={listId} onSubmit={handleAdd} excludeIds={existingItemIds} />
 
       {dialogs}
     </KeyboardAvoidingView>

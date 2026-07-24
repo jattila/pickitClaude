@@ -29,6 +29,7 @@ export default function ListsOverviewScreen() {
     scrollTargetId,
     handleTargetLayout,
     handleAdd,
+    existingItemIds,
     setRestoreRequest,
     setRenamingItem,
     setDeletingItem,
@@ -129,7 +130,7 @@ export default function ListsOverviewScreen() {
         ))}
       </ScrollView>
 
-      <ItemNameInput listId={defaultListId} onSubmit={handleAdd} />
+      <ItemNameInput listId={defaultListId} onSubmit={handleAdd} excludeIds={existingItemIds} />
 
       {itemDialogs}
 
