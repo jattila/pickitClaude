@@ -59,23 +59,6 @@ export default function ListsOverviewScreen() {
       />
 
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
-        {sections.map((section) => (
-          <Fragment key={section.title}>
-            <Text style={styles.sectionHeader}>{section.title}</Text>
-            {section.data.map((item) => (
-              <View key={item.id} onLayout={item.id === scrollTargetId ? handleTargetLayout : undefined}>
-                <ItemRow
-                  item={item}
-                  onCheck={() => checkItem(item.id)}
-                  onRequestRestore={() => setRestoreRequest(item)}
-                  onRenameRequest={() => setRenamingItem(item)}
-                  onDeleteRequest={() => setDeletingItem(item)}
-                />
-              </View>
-            ))}
-          </Fragment>
-        ))}
-
         {user ? (
           <>
             <View style={styles.sectionHeaderRow}>
@@ -102,14 +85,12 @@ export default function ListsOverviewScreen() {
         ) : null}
 
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeader}>Saját listáim</Text>
+          <Text style={styles.sectionHeader}>Saját listáim és tételeim</Text>
           <Pressable onPress={() => setCreatingList(true)} hitSlop={8}>
             <Text style={styles.sectionAction}>+ Új lista</Text>
           </Pressable>
         </View>
-        {!loading && lists.length === 0 ? (
-          <Text style={styles.sectionEmptyText}>Még nincs külön listád.</Text>
-        ) : (
+        {!loading &&
           lists.map((item) => (
             <ListRow
               key={item.id}
@@ -118,8 +99,24 @@ export default function ListsOverviewScreen() {
               onRenameRequest={() => setRenamingList(item)}
               onDeleteRequest={() => setDeletingList(item)}
             />
-          ))
-        )}
+          ))}
+
+        {sections.map((section) => (
+          <Fragment key={section.title}>
+            <Text style={styles.sectionHeader}>{section.title}</Text>
+            {section.data.map((item) => (
+              <View key={item.id} onLayout={item.id === scrollTargetId ? handleTargetLayout : undefined}>
+                <ItemRow
+                  item={item}
+                  onCheck={() => checkItem(item.id)}
+                  onRequestRestore={() => setRestoreRequest(item)}
+                  onRenameRequest={() => setRenamingItem(item)}
+                  onDeleteRequest={() => setDeletingItem(item)}
+                />
+              </View>
+            ))}
+          </Fragment>
+        ))}
       </ScrollView>
 
       {defaultListId ? <ItemNameInput listId={defaultListId} onSubmit={handleAdd} /> : null}
