@@ -68,7 +68,7 @@ export default function ListsOverviewScreen() {
         {user ? (
           <>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeader}>Csoportjaim</Text>
+              <Text style={styles.sectionHeaderInline}>Csoportjaim</Text>
               <Pressable onPress={() => setCreatingGroup(true)} hitSlop={8}>
                 <Text style={styles.sectionAction}>+ Új csoport</Text>
               </Pressable>
@@ -91,7 +91,7 @@ export default function ListsOverviewScreen() {
         ) : null}
 
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeader}>Saját listáim és tételeim</Text>
+          <Text style={styles.sectionHeaderInline}>Saját listáim és tételeim</Text>
           <Pressable onPress={() => setCreatingList(true)} hitSlop={8}>
             <Text style={styles.sectionAction}>+ Új lista</Text>
           </Pressable>
@@ -231,6 +231,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 6,
+  },
+  // Same look as sectionHeader but without horizontal padding, because its
+  // parent (sectionHeaderRow) already provides the 20px inset — so the header
+  // text lines up with the rows below instead of sitting further in.
+  sectionHeaderInline: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#888',
+    textTransform: 'uppercase',
   },
   sectionAction: {
     color: '#4A90D9',
