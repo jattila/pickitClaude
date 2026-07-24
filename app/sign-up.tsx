@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
 import { migrateGuestDataToCloud } from '../src/services/migration';
 import { createDefaultUserProfile } from '../src/services/userProfile';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -15,14 +16,15 @@ export default function SignUpScreen() {
 
   const submit = async () => {
     setError(null);
-    if (!email.trim() || password.length < 6) {
-      setError('Adj meg egy email címet és legalább 6 karakteres jelszót.');
+    if (!name.trim() || !email.trim() || password.length < 6) {
+      setError('Adj meg egy nevet, egy email címet és legalább 6 karakteres jelszót.');
       return;
     }
     setSubmitting(true);
     try {
       const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      await createDefaultUserProfile(credential.user.uid, email.trim());
+      await updateProfile(credential.user, { displayName: name.trim() });
+      await createDefaultUserProfile(credential.user.uid, email.trim(), name.trim());
       await migrateGuestDataToCloud(credential.user.uid);
       router.replace('/');
     } catch (e: any) {
@@ -39,6 +41,13 @@ export default function SignUpScreen() {
         A meglévő listáid és tételeid automatikusan átkerülnek a fiókodba.
       </Text>
 
+      <TextInput
+        value={name}
+        onChangeText={setName}
+        placeholder="Neved"
+        autoCapitalize="words"
+        style={styles.input}
+      />
       <TextInput
         value={email}
         onChangeText={setEmail}

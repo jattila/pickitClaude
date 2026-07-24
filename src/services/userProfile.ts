@@ -9,11 +9,11 @@ export const DEFAULT_SETTINGS = {
 };
 
 /** Seeds the users/{uid} profile doc right after registration. */
-export async function createDefaultUserProfile(uid: string, email: string): Promise<void> {
+export async function createDefaultUserProfile(uid: string, email: string, displayName?: string): Promise<void> {
   const now = Date.now();
   await setDoc(doc(firestore, 'users', uid), {
     email,
-    displayName: email.split('@')[0],
+    displayName: displayName?.trim() || email.split('@')[0],
     settings: DEFAULT_SETTINGS,
     lastDigestSentAt: now,
     nextDigestDueAt: now + DEFAULT_SETTINGS.digestIntervalMinutes * 60_000,
