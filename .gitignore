@@ -45,3 +45,7 @@ GoogleService-Info.plist
 /android
 functions/lib
 functions/node_modules
+
+# Firebase
+firebase-debug.log
+firebase-debug.*.log
