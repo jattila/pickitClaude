@@ -59,7 +59,9 @@ service cloud.firestore {
         // Only used for the creator's own owner-member doc at group creation
         // time; joining via invite is written server-side by redeemInvite.
         allow create: if isSignedIn() && request.auth.uid == uid && request.resource.data.role == 'owner';
-        allow update, delete: if false;
+        allow update: if false;
+        // Cleanup when the owner deletes the whole group (client cascade-delete).
+        allow delete: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
       }
 
       // Group catalog land in M4 alongside the Cloud Function item triggers

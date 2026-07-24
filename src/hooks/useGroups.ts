@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { createGroup, subscribeMyGroups } from '../services/groups';
+import { createGroup, deleteGroup, renameGroup, subscribeMyGroups } from '../services/groups';
 import type { Group } from '../data/types';
 
 export function useGroups() {
@@ -26,5 +26,7 @@ export function useGroups() {
     groups,
     loading,
     createGroup: (name: string) => createGroup(name),
+    renameGroup: (groupId: string, name: string) => renameGroup(groupId, name),
+    deleteGroup: (groupId: string) => deleteGroup(groupId),
   };
 }

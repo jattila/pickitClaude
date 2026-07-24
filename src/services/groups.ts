@@ -6,6 +6,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
   where,
   writeBatch,
   type DocumentData,
@@ -76,6 +77,45 @@ export async function createGroup(name: string): Promise<Group> {
     createdAt: now,
     updatedAt: now,
   };
+}
+
+export async function renameGroup(groupId: string, name: string): Promise<void> {
+  await updateDoc(doc(firestore, 'groups', groupId), { name: name.trim(), updatedAt: Date.now() });
+}
+
+const BATCH_LIMIT = 400; // stay comfortably under Firestore's 500-write batch cap
+
+/** Owner-only: deletes the group, its members, and every one of its lists (with their items). */
+export async function deleteGroup(groupId: string): Promise<void> {
+  let batch = writeBatch(firestore);
+  let opCount = 0;
+  const queue = async (fn: () => void) => {
+    fn();
+    opCount += 1;
+    if (opCount >= BATCH_LIMIT) {
+      await batch.commit();
+      batch = writeBatch(firestore);
+      opCount = 0;
+    }
+  };
+
+  const listsSnap = await getDocs(query(collection(firestore, 'lists'), where('groupId', '==', groupId)));
+  for (const listDoc of listsSnap.docs) {
+    const itemsSnap = await getDocs(collection(firestore, 'lists', listDoc.id, 'items'));
+    for (const itemDoc of itemsSnap.docs) {
+      await queue(() => batch.delete(itemDoc.ref));
+    }
+    await queue(() => batch.delete(listDoc.ref));
+  }
+
+  const membersSnap = await getDocs(collection(firestore, 'groups', groupId, 'members'));
+  for (const memberDoc of membersSnap.docs) {
+    await queue(() => batch.delete(memberDoc.ref));
+  }
+
+  await queue(() => batch.delete(doc(firestore, 'groups', groupId)));
+
+  if (opCount > 0) await batch.commit();
 }
 
 export function subscribeMyGroups(onChange: (groups: Group[]) => void): () => void {

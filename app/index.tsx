@@ -5,20 +5,23 @@ import { useLists } from '../src/hooks/useLists';
 import { useGroups } from '../src/hooks/useGroups';
 import { useAuthStore } from '../src/store/authStore';
 import { ListRow } from '../src/components/ListRow';
+import { GroupRow } from '../src/components/GroupRow';
 import { PromptDialog } from '../src/components/PromptDialog';
 import { ConfirmDialog } from '../src/components/ConfirmDialog';
-import type { ShoppingList } from '../src/data/types';
+import type { Group, ShoppingList } from '../src/data/types';
 
 export default function ListsOverviewScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const { lists, loading, createList, renameList, deleteList } = useLists();
-  const { groups, createGroup } = useGroups();
+  const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
 
   const [creatingList, setCreatingList] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [renamingList, setRenamingList] = useState<ShoppingList | null>(null);
   const [deletingList, setDeletingList] = useState<ShoppingList | null>(null);
+  const [renamingGroup, setRenamingGroup] = useState<Group | null>(null);
+  const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
 
   const nothingToShow = !loading && lists.length === 0 && groups.length === 0;
 
@@ -54,14 +57,14 @@ export default function ListsOverviewScreen() {
                 <Text style={styles.sectionEmptyText}>Még nem vagy tagja egyetlen csoportnak sem.</Text>
               ) : (
                 groups.map((group) => (
-                  <Pressable
+                  <GroupRow
                     key={group.id}
-                    style={styles.groupRow}
+                    group={group}
+                    isOwner={group.ownerId === user?.uid}
                     onPress={() => router.push(`/group/${group.id}`)}
-                  >
-                    <Text style={styles.groupName}>{group.name}</Text>
-                    <Text style={styles.chevron}>›</Text>
-                  </Pressable>
+                    onRenameRequest={() => setRenamingGroup(group)}
+                    onDeleteRequest={() => setDeletingGroup(group)}
+                  />
                 ))
               )}
             </>
@@ -133,6 +136,30 @@ export default function ListsOverviewScreen() {
           setDeletingList(null);
         }}
       />
+
+      <PromptDialog
+        visible={!!renamingGroup}
+        title="Csoport átnevezése"
+        initialValue={renamingGroup?.name ?? ''}
+        onCancel={() => setRenamingGroup(null)}
+        onConfirm={(name) => {
+          if (renamingGroup) renameGroup(renamingGroup.id, name);
+          setRenamingGroup(null);
+        }}
+      />
+
+      <ConfirmDialog
+        visible={!!deletingGroup}
+        title="Csoport törlése"
+        message={`Biztosan törlöd a(z) "${deletingGroup?.name}" csoportot? Ez minden tagnál törli a csoport összes listáját és tételét.`}
+        confirmLabel="Törlés"
+        destructive
+        onCancel={() => setDeletingGroup(null)}
+        onConfirm={() => {
+          if (deletingGroup) deleteGroup(deletingGroup.id);
+          setDeletingGroup(null);
+        }}
+      />
     </View>
   );
 }
@@ -193,24 +220,6 @@ const styles = StyleSheet.create({
     color: '#999',
     paddingHorizontal: 20,
     paddingBottom: 8,
-  },
-  groupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E0E0E0',
-  },
-  groupName: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  chevron: {
-    fontSize: 20,
-    color: '#BBB',
   },
   fab: {
     position: 'absolute',
