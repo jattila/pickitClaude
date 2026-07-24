@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useGroupLists } from '../../../src/hooks/useGroupLists';
 import { useGroups } from '../../../src/hooks/useGroups';
-import { useGroupDefaultListId } from '../../../src/hooks/useGroupDefaultListId';
+import { useGroupDefaultList } from '../../../src/hooks/useGroupDefaultListId';
 import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
 import { ListRow } from '../../../src/components/ListRow';
 import { ItemRow } from '../../../src/components/ItemRow';
@@ -23,7 +23,7 @@ export default function GroupListsScreen() {
   const { groups } = useGroups();
   const group = groups.find((g) => g.id === groupId);
 
-  const defaultListId = useGroupDefaultListId(groupId);
+  const { listId: defaultListId, ensureListId } = useGroupDefaultList(groupId);
   const {
     scrollViewRef,
     sections,
@@ -35,7 +35,7 @@ export default function GroupListsScreen() {
     setDeletingItem,
     checkItem,
     dialogs: itemDialogs,
-  } = useItemsPanel(defaultListId);
+  } = useItemsPanel(defaultListId, ensureListId);
 
   // The shared quick-add list is hidden from the group's list section — its
   // items surface directly below instead.
@@ -99,7 +99,7 @@ export default function GroupListsScreen() {
         ))}
       </ScrollView>
 
-      {defaultListId ? <ItemNameInput listId={defaultListId} onSubmit={handleAdd} /> : null}
+      <ItemNameInput listId={defaultListId} onSubmit={handleAdd} />
 
       {itemDialogs}
 

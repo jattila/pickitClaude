@@ -1,20 +1,30 @@
-import { useEffect, useState } from 'react';
-import { getOrCreateGroupDefaultList } from '../services/groups';
+import { useCallback, useEffect, useState } from 'react';
+import { getExistingGroupDefaultListId, getOrCreateGroupDefaultList } from '../services/groups';
 
-/** Resolves (creating on first use) the hidden shared list backing a group's quick-add. */
-export function useGroupDefaultListId(groupId: string): string | null {
+/**
+ * Backs a group's shared quick-add. The hidden group list is only created when a
+ * member actually adds the first loose item — opening/joining the group never
+ * creates a stray "Bevásárlólista".
+ */
+export function useGroupDefaultList(groupId: string) {
   const [listId, setListId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setListId(null);
-    getOrCreateGroupDefaultList(groupId).then((list) => {
-      if (!cancelled) setListId(list.id);
+    getExistingGroupDefaultListId(groupId).then((id) => {
+      if (!cancelled) setListId(id);
     });
     return () => {
       cancelled = true;
     };
   }, [groupId]);
 
-  return listId;
+  const ensureListId = useCallback(async () => {
+    const list = await getOrCreateGroupDefaultList(groupId);
+    setListId(list.id);
+    return list.id;
+  }, [groupId]);
+
+  return { listId, ensureListId };
 }

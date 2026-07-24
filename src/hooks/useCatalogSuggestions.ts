@@ -4,18 +4,19 @@ import type { CatalogEntry } from '../data/types';
 
 const DEBOUNCE_MS = 200;
 
-export function useCatalogSuggestions(listId: string, prefix: string) {
+export function useCatalogSuggestions(listId: string | null, prefix: string) {
   const repo = useRepository();
   const [suggestions, setSuggestions] = useState<CatalogEntry[]>([]);
 
   useEffect(() => {
-    if (!prefix.trim()) {
+    if (!listId || !prefix.trim()) {
       setSuggestions([]);
       return;
     }
     let cancelled = false;
+    const targetListId = listId;
     const timer = setTimeout(() => {
-      repo.getCatalogSuggestions(listId, prefix).then((results) => {
+      repo.getCatalogSuggestions(targetListId, prefix).then((results) => {
         if (!cancelled) setSuggestions(results);
       });
     }, DEBOUNCE_MS);

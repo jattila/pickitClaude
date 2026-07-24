@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { ScrollView } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
+import { useRepository } from '../data/useRepository';
 import { useListItems } from './useListItems';
 import { toItemId } from '../services/normalize';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -10,11 +11,15 @@ import type { ShoppingItem } from '../data/types';
 /**
  * Shared logic behind an items list + quick-add input: sections, the
  * scroll-to-newly-added-item behavior, and the rename/delete/restore dialogs.
- * Used by both the list detail screen and the overview screen's quick-add
- * panel so the two stay behaviorally identical.
+ * Used by both the list detail screen and the overview screen's quick-add panel.
+ *
+ * `ensureListId` (optional) lets a screen defer creating its hidden default list
+ * until the first item is actually added — when `listId` is null and the user
+ * adds, we resolve/create the target list on demand.
  */
-export function useItemsPanel(listId: string | null) {
-  const { activeItems, checkedItems, addItem, renameItem, checkItem, restoreItem, deleteItem } =
+export function useItemsPanel(listId: string | null, ensureListId?: () => Promise<string>) {
+  const repo = useRepository();
+  const { activeItems, checkedItems, renameItem, checkItem, restoreItem, deleteItem } =
     useListItems(listId);
 
   const [pendingRestoreConfirm, setPendingRestoreConfirm] = useState<ShoppingItem | null>(null);
@@ -27,7 +32,12 @@ export function useItemsPanel(listId: string | null) {
 
   const handleAdd = async (name: string) => {
     setScrollTargetId(toItemId(name).id);
-    const { wasAlreadyChecked, item } = await addItem(name);
+    const targetId = listId ?? (ensureListId ? await ensureListId() : null);
+    if (!targetId) {
+      setScrollTargetId(null);
+      return;
+    }
+    const { wasAlreadyChecked, item } = await repo.addItem(targetId, name);
     if (wasAlreadyChecked) {
       setScrollTargetId(null);
       setPendingRestoreConfirm(item);

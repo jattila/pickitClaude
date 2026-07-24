@@ -116,6 +116,15 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     return { id: ref.id, name: list.name, groupId, createdAt: now, updatedAt: now };
   }
 
+  async getExistingDefaultListId(): Promise<string | null> {
+    const uid = requireUid();
+    const userSnap = await getDoc(doc(firestore, 'users', uid));
+    const defaultListId = userSnap.exists() ? (userSnap.data() as DocumentData).defaultListId : null;
+    if (!defaultListId) return null;
+    const existing = await getDoc(doc(firestore, 'lists', defaultListId));
+    return existing.exists() ? defaultListId : null;
+  }
+
   async getOrCreateDefaultList(): Promise<ShoppingList> {
     const uid = requireUid();
     const userRef = doc(firestore, 'users', uid);

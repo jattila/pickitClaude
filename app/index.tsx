@@ -4,7 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useLists } from '../src/hooks/useLists';
 import { useGroups } from '../src/hooks/useGroups';
-import { useDefaultListId } from '../src/hooks/useQuickAdd';
+import { useDefaultList } from '../src/hooks/useQuickAdd';
 import { useItemsPanel } from '../src/hooks/useItemsPanel';
 import { useAuthStore } from '../src/store/authStore';
 import { ListRow } from '../src/components/ListRow';
@@ -19,7 +19,7 @@ export default function ListsOverviewScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
   const user = useAuthStore((state) => state.user);
-  const defaultListId = useDefaultListId();
+  const { listId: defaultListId, ensureListId } = useDefaultList();
   const { lists: allLists, loading, createList, renameList, deleteList } = useLists();
   const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
 
@@ -34,10 +34,10 @@ export default function ListsOverviewScreen() {
     setDeletingItem,
     checkItem,
     dialogs: itemDialogs,
-  } = useItemsPanel(defaultListId);
+  } = useItemsPanel(defaultListId, ensureListId);
 
-  // The quick-add list is a perfectly ordinary list under the hood, but it's
-  // never shown in "Saját listáim" — its items surface directly up here instead.
+  // The hidden quick-add list (once it exists) is never shown in "Saját listáim" —
+  // its items surface directly up here instead.
   const lists = allLists.filter((l) => l.id !== defaultListId);
 
   const [creatingList, setCreatingList] = useState(false);
@@ -129,7 +129,7 @@ export default function ListsOverviewScreen() {
         ))}
       </ScrollView>
 
-      {defaultListId ? <ItemNameInput listId={defaultListId} onSubmit={handleAdd} /> : null}
+      <ItemNameInput listId={defaultListId} onSubmit={handleAdd} />
 
       {itemDialogs}
 

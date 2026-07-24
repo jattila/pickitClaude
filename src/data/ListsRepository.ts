@@ -15,10 +15,12 @@ export interface ListsRepository {
   renameList(listId: string, name: string): Promise<void>;
   deleteList(listId: string): Promise<void>;
   /**
-   * Returns the personal list used for "quick add" (no list picked explicitly),
-   * creating one on first use. It's a perfectly ordinary list — nothing marks
-   * it as special in the UI, it's just remembered as the quick-add target.
+   * The personal list used for "quick add" (no list picked explicitly).
+   * `getExistingDefaultListId` returns it only if it already exists (never
+   * creates), so merely opening the app makes no list; `getOrCreateDefaultList`
+   * creates it lazily on the first loose item added.
    */
+  getExistingDefaultListId(): Promise<string | null>;
   getOrCreateDefaultList(): Promise<ShoppingList>;
   /** Single-list metadata (name, groupId, ...) regardless of whether it's personal or a group list. */
   subscribeListMeta(listId: string, onChange: (list: ShoppingList | null) => void): () => void;

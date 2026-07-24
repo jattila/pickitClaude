@@ -199,6 +199,13 @@ function groupDefaultListId(groupId: string): string {
   return `gdefault_${groupId}`;
 }
 
+/** Returns the group's shared quick-add list id only if it already exists (never creates). */
+export async function getExistingGroupDefaultListId(groupId: string): Promise<string | null> {
+  const ref = doc(firestore, 'lists', groupDefaultListId(groupId));
+  const snap = await getDoc(ref);
+  return snap.exists() ? ref.id : null;
+}
+
 /**
  * The group's shared quick-add list (created on first use). Like the personal
  * default list it's never shown in the group's list section — its items surface

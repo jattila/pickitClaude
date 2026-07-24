@@ -1,21 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRepository } from '../data/useRepository';
 
-/** Resolves (creating on first use) the hidden personal list backing the overview screen's quick-add. */
-export function useDefaultListId(): string | null {
+/**
+ * Backs the overview screen's quick-add. The hidden default list is NOT created
+ * on mount — only when the user actually adds the first loose item (via
+ * `ensureListId`). So merely opening the app (or joining a group) never spawns a
+ * stray "Bevásárlólista".
+ */
+export function useDefaultList() {
   const repo = useRepository();
   const [listId, setListId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setListId(null);
-    repo.getOrCreateDefaultList().then((list) => {
-      if (!cancelled) setListId(list.id);
+    repo.getExistingDefaultListId().then((id) => {
+      if (!cancelled) setListId(id);
     });
     return () => {
       cancelled = true;
     };
   }, [repo]);
 
-  return listId;
+  const ensureListId = useCallback(async () => {
+    const list = await repo.getOrCreateDefaultList();
+    setListId(list.id);
+    return list.id;
+  }, [repo]);
+
+  return { listId, ensureListId };
 }

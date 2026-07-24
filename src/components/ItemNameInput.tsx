@@ -4,7 +4,7 @@ import { useCatalogSuggestions } from '../hooks/useCatalogSuggestions';
 import { lowercaseFirstChar, toDisplayName } from '../services/normalize';
 
 interface ItemNameInputProps {
-  listId: string;
+  listId: string | null;
   onSubmit: (name: string) => void;
 }
 
