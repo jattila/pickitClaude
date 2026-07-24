@@ -80,7 +80,10 @@ service cloud.firestore {
     }
 
     match /lists/{listId} {
-      allow read: if canAccessList(resource.data);
+      // resource == null means a get() on a not-yet-created list (e.g. resolving
+      // a group's deterministic-id default list on first open); allowing it leaks
+      // nothing — an existing list the caller can't access still fails below.
+      allow read: if resource == null || canAccessList(resource.data);
       allow create: if isSignedIn()
         && request.resource.data.ownerId == request.auth.uid
         && (
