@@ -2,18 +2,19 @@ import { Fragment, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
-import { useLists } from '../src/hooks/useLists';
-import { useGroups } from '../src/hooks/useGroups';
-import { useDefaultList } from '../src/hooks/useQuickAdd';
-import { useItemsPanel } from '../src/hooks/useItemsPanel';
-import { useAuthStore } from '../src/store/authStore';
-import { ListRow } from '../src/components/ListRow';
-import { GroupRow } from '../src/components/GroupRow';
-import { ItemRow } from '../src/components/ItemRow';
-import { ItemNameInput } from '../src/components/ItemNameInput';
-import { PromptDialog } from '../src/components/PromptDialog';
-import { ConfirmDialog } from '../src/components/ConfirmDialog';
-import type { Group, ShoppingList } from '../src/data/types';
+import { useLists } from '../../../src/hooks/useLists';
+import { useGroups } from '../../../src/hooks/useGroups';
+import { useDefaultList } from '../../../src/hooks/useQuickAdd';
+import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
+import { useAuthStore } from '../../../src/store/authStore';
+import { ListRow } from '../../../src/components/ListRow';
+import { GroupRow } from '../../../src/components/GroupRow';
+import { ItemRow } from '../../../src/components/ItemRow';
+import { ItemNameInput } from '../../../src/components/ItemNameInput';
+import { PromptDialog } from '../../../src/components/PromptDialog';
+import { ConfirmDialog } from '../../../src/components/ConfirmDialog';
+import { HamburgerButton } from '../../../src/components/HamburgerButton';
+import type { Group, ShoppingList } from '../../../src/data/types';
 
 export default function ListsOverviewScreen() {
   const router = useRouter();
@@ -55,16 +56,7 @@ export default function ListsOverviewScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={headerHeight}
     >
-      <Stack.Screen
-        options={{
-          title: 'PickIt',
-          headerRight: () => (
-            <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
-              <Text style={styles.settingsLink}>Beállítások</Text>
-            </Pressable>
-          ),
-        }}
-      />
+      <Stack.Screen options={{ title: 'PickIt', headerLeft: () => <HamburgerButton /> }} />
 
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
         {user ? (
@@ -225,11 +217,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 16,
-  },
-  settingsLink: {
-    color: '#4A90D9',
-    fontSize: 15,
-    paddingHorizontal: 4,
   },
   sectionHeaderRow: {
     flexDirection: 'row',

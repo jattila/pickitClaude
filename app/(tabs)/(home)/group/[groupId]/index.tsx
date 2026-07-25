@@ -2,18 +2,18 @@ import { Fragment, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
-import { useGroupLists } from '../../../src/hooks/useGroupLists';
-import { useGroups } from '../../../src/hooks/useGroups';
-import { useGroupDefaultList } from '../../../src/hooks/useGroupDefaultListId';
-import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
-import { ListRow } from '../../../src/components/ListRow';
-import { ItemRow } from '../../../src/components/ItemRow';
-import { ItemNameInput } from '../../../src/components/ItemNameInput';
-import { PromptDialog } from '../../../src/components/PromptDialog';
-import { ConfirmDialog } from '../../../src/components/ConfirmDialog';
-import { FirestoreListsRepository } from '../../../src/data/cloud/FirestoreListsRepository';
-import { isGroupDefaultList } from '../../../src/services/groups';
-import type { ShoppingList } from '../../../src/data/types';
+import { useGroupLists } from '../../../../../src/hooks/useGroupLists';
+import { useGroups } from '../../../../../src/hooks/useGroups';
+import { useGroupDefaultList } from '../../../../../src/hooks/useGroupDefaultListId';
+import { useItemsPanel } from '../../../../../src/hooks/useItemsPanel';
+import { ListRow } from '../../../../../src/components/ListRow';
+import { ItemRow } from '../../../../../src/components/ItemRow';
+import { ItemNameInput } from '../../../../../src/components/ItemNameInput';
+import { PromptDialog } from '../../../../../src/components/PromptDialog';
+import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
+import { FirestoreListsRepository } from '../../../../../src/data/cloud/FirestoreListsRepository';
+import { isGroupDefaultList } from '../../../../../src/services/groups';
+import type { ShoppingList } from '../../../../../src/data/types';
 
 export default function GroupListsScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
@@ -56,9 +56,14 @@ export default function GroupListsScreen() {
         options={{
           title: group?.name ?? 'Csoport',
           headerRight: () => (
-            <Pressable onPress={() => router.push(`/group/${groupId}/members`)} hitSlop={8}>
-              <Text style={styles.membersLink}>Tagok</Text>
-            </Pressable>
+            <View style={styles.headerLinks}>
+              <Pressable onPress={() => router.push(`/group/${groupId}/catalog`)} hitSlop={8}>
+                <Text style={styles.membersLink}>Katalógus</Text>
+              </Pressable>
+              <Pressable onPress={() => router.push(`/group/${groupId}/members`)} hitSlop={8}>
+                <Text style={styles.membersLink}>Tagok</Text>
+              </Pressable>
+            </View>
           ),
         }}
       />
@@ -146,6 +151,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  headerLinks: {
+    flexDirection: 'row',
+    gap: 12,
   },
   membersLink: {
     color: '#4A90D9',

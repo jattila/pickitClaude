@@ -281,6 +281,57 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
       : collection(firestore, 'users', uid, 'catalog');
   }
 
+  /** Resolves a catalog scope directly — the editor isn't tied to any one list. */
+  private catalogCollectionForScope(groupId: string | null) {
+    const uid = requireUid();
+    return groupId
+      ? collection(firestore, 'groups', groupId, 'catalog')
+      : collection(firestore, 'users', uid, 'catalog');
+  }
+
+  async getCatalogEntries(groupId: string | null): Promise<CatalogEntry[]> {
+    const q = query(this.catalogCollectionForScope(groupId), orderBy('normalizedName', 'asc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        name: data.name,
+        normalizedName: data.normalizedName,
+        usageCount: data.usageCount,
+        lastUsedAt: data.lastUsedAt,
+        createdAt: data.createdAt,
+      } as CatalogEntry;
+    });
+  }
+
+  async renameCatalogEntry(groupId: string | null, catalogId: string, newName: string): Promise<void> {
+    const trimmed = toDisplayName(newName);
+    const { normalizedName, id: newId } = toItemId(trimmed);
+    const coll = this.catalogCollectionForScope(groupId);
+    const oldRef = doc(coll, catalogId);
+
+    if (newId === catalogId) {
+      await updateDoc(oldRef, { name: trimmed, normalizedName });
+      return;
+    }
+
+    const newRef = doc(coll, newId);
+    const [existing, collision] = await Promise.all([getDoc(oldRef), getDoc(newRef)]);
+    if (collision.exists()) throw new Error('Már van ilyen nevű termék a katalógusban.');
+    if (!existing.exists()) throw new Error('A termék már nem létezik a katalógusban.');
+
+    const data = existing.data() as DocumentData;
+    const batch = writeBatch(firestore);
+    batch.delete(oldRef);
+    batch.set(newRef, { ...data, name: trimmed, normalizedName });
+    await batch.commit();
+  }
+
+  async deleteCatalogEntry(groupId: string | null, catalogId: string): Promise<void> {
+    await deleteDoc(doc(this.catalogCollectionForScope(groupId), catalogId));
+  }
+
   async getCatalogSuggestions(listId: string, prefix: string): Promise<CatalogEntry[]> {
     const normalizedPrefix = prefix.trim().toLowerCase();
     if (!normalizedPrefix) return [];

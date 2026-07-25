@@ -290,6 +290,52 @@ class LocalListsRepositoryImpl implements ListsRepository {
     await this.notifyItemsChanged(listId);
   }
 
+  async getCatalogEntries(_groupId: string | null): Promise<CatalogEntry[]> {
+    // Guests have no groups — there's only ever the one local catalog table.
+    const db = await getDb();
+    const rows = await db.getAllAsync('SELECT * FROM catalog ORDER BY normalizedName ASC');
+    return rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      normalizedName: row.normalizedName,
+      usageCount: row.usageCount,
+      lastUsedAt: row.lastUsedAt,
+      createdAt: row.createdAt,
+    }));
+  }
+
+  async renameCatalogEntry(_groupId: string | null, catalogId: string, newName: string): Promise<void> {
+    const db = await getDb();
+    const trimmed = toDisplayName(newName);
+    const { normalizedName, id: newId } = toItemId(trimmed);
+
+    if (newId === catalogId) {
+      await db.runAsync('UPDATE catalog SET name = ?, normalizedName = ? WHERE id = ?', [
+        trimmed,
+        normalizedName,
+        catalogId,
+      ]);
+      return;
+    }
+
+    const collision = await db.getFirstAsync('SELECT id FROM catalog WHERE id = ?', [newId]);
+    if (collision) throw new Error('Már van ilyen nevű termék a katalógusban.');
+
+    const existing = await db.getFirstAsync<any>('SELECT * FROM catalog WHERE id = ?', [catalogId]);
+    if (!existing) throw new Error('A termék már nem létezik a katalógusban.');
+
+    await db.runAsync('DELETE FROM catalog WHERE id = ?', [catalogId]);
+    await db.runAsync(
+      `INSERT INTO catalog (id, name, normalizedName, usageCount, lastUsedAt, createdAt) VALUES (?, ?, ?, ?, ?, ?)`,
+      [newId, trimmed, normalizedName, existing.usageCount, existing.lastUsedAt, existing.createdAt]
+    );
+  }
+
+  async deleteCatalogEntry(_groupId: string | null, catalogId: string): Promise<void> {
+    const db = await getDb();
+    await db.runAsync('DELETE FROM catalog WHERE id = ?', [catalogId]);
+  }
+
   async getCatalogSuggestions(_listId: string, prefix: string): Promise<CatalogEntry[]> {
     const db = await getDb();
     const normalizedPrefix = prefix.trim().toLowerCase();

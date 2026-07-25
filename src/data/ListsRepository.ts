@@ -41,4 +41,14 @@ export interface ListsRepository {
   deleteItem(listId: string, itemId: string): Promise<void>;
 
   getCatalogSuggestions(listId: string, prefix: string): Promise<CatalogEntry[]>;
+
+  /**
+   * Full catalog editor support. `groupId` selects the scope directly (null =
+   * the caller's personal catalog) — unlike `getCatalogSuggestions`, there's no
+   * list to resolve it from since the editor is opened from Settings/a group
+   * screen, not from a specific list.
+   */
+  getCatalogEntries(groupId: string | null): Promise<CatalogEntry[]>;
+  renameCatalogEntry(groupId: string | null, catalogId: string, newName: string): Promise<void>;
+  deleteCatalogEntry(groupId: string | null, catalogId: string): Promise<void>;
 }

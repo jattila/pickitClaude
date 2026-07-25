@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { FlatList, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useGroupMembers } from '../../../src/hooks/useGroupMembers';
-import { useGroups } from '../../../src/hooks/useGroups';
-import { createInvite } from '../../../src/services/groups';
+import { useGroupMembers } from '../../../../../src/hooks/useGroupMembers';
+import { useGroups } from '../../../../../src/hooks/useGroups';
+import { createInvite } from '../../../../../src/services/groups';
 
 export default function GroupMembersScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();

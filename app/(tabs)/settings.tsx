@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signOut } from '@react-native-firebase/auth';
-import { auth } from '../src/services/firebase';
-import { useAuthStore } from '../src/store/authStore';
-import { PromptDialog } from '../src/components/PromptDialog';
+import { auth } from '../../src/services/firebase';
+import { useAuthStore } from '../../src/store/authStore';
+import { PromptDialog } from '../../src/components/PromptDialog';
 
 export default function SettingsScreen() {
   const router = useRouter();

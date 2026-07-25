@@ -33,11 +33,13 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
       }
 
-      // Personal catalog: client reads for autocomplete; the onItemCreated /
-      // onItemUpdated triggers (Admin SDK) own all writes.
+      // Personal catalog: client reads for autocomplete, and can rename/delete
+      // entries via the catalog editor; new entries are only ever created by
+      // the onItemCreated trigger (Admin SDK), never directly by the client.
       match /catalog/{catalogItemId} {
         allow read: if isSignedIn() && request.auth.uid == uid;
-        allow write: if false;
+        allow update, delete: if isSignedIn() && request.auth.uid == uid;
+        allow create: if false;
       }
     }
 
@@ -65,11 +67,12 @@ service cloud.firestore {
         allow delete: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
       }
 
-      // Group catalog land in M4 alongside the Cloud Function item triggers
-      // that will own writes to it; client read-only for now.
+      // Group catalog: entries are created by the onItemCreated trigger (Admin
+      // SDK); any current member can read, and rename/delete via the editor.
       match /catalog/{catalogItemId} {
         allow read: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data);
-        allow write: if false;
+        allow update, delete: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data);
+        allow create: if false;
       }
     }
 

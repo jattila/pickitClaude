@@ -2,10 +2,10 @@ import { Fragment } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
-import { useListMeta } from '../../../src/hooks/useListMeta';
-import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
-import { ItemRow } from '../../../src/components/ItemRow';
-import { ItemNameInput } from '../../../src/components/ItemNameInput';
+import { useListMeta } from '../../../../src/hooks/useListMeta';
+import { useItemsPanel } from '../../../../src/hooks/useItemsPanel';
+import { ItemRow } from '../../../../src/components/ItemRow';
+import { ItemNameInput } from '../../../../src/components/ItemNameInput';
 
 export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
