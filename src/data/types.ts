@@ -12,6 +12,8 @@ export interface ShoppingItem {
   name: string;
   normalizedName: string;
   quantity: string | null;
+  /** Favourites sort to the top of their section. Per-item, not per-product. */
+  favorite: boolean;
   checked: boolean;
   checkedBy: string | null; // uid of whoever checked it; always null locally (guests have no other members)
   checkedByName: string | null;

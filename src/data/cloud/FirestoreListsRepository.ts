@@ -45,6 +45,7 @@ function toShoppingItem(listId: string, snap: QueryDocumentSnapshot<DocumentData
     name: data.name,
     normalizedName: data.normalizedName,
     quantity: data.quantity ?? null,
+    favorite: data.favorite === true,
     checked: !!data.checked,
     checkedBy: data.checkedBy ?? null,
     checkedByName: data.checkedByName ?? null,
@@ -190,13 +191,16 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
   }
 
   async getItems(listId: string): Promise<ShoppingItem[]> {
-    const q = query(collection(firestore, 'lists', listId, 'items'), orderBy('checked', 'asc'), orderBy('createdAt', 'asc'));
+    // Deliberately unordered: ordering happens client-side (favourites first,
+    // then alphabetical), and a Firestore orderBy silently drops documents that
+    // lack the field — which is exactly how an item once became invisible.
+    const q = collection(firestore, 'lists', listId, 'items');
     const snap = await getDocs(q);
     return snap.docs.map((d) => toShoppingItem(listId, d));
   }
 
   subscribeItems(listId: string, onChange: (items: ShoppingItem[]) => void): () => void {
-    const q = query(collection(firestore, 'lists', listId, 'items'), orderBy('checked', 'asc'), orderBy('createdAt', 'asc'));
+    const q = collection(firestore, 'lists', listId, 'items');
     return watchQuery(q, (snap) => snap.docs.map((d) => toShoppingItem(listId, d)), onChange, []);
   }
 
@@ -233,6 +237,7 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
       name: trimmed,
       normalizedName,
       quantity,
+      favorite: false,
       checked: false,
       checkedBy: null,
       checkedByName: null,
@@ -250,6 +255,7 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
       name: trimmed,
       normalizedName,
       quantity,
+      favorite: false,
       checked: false,
       checkedBy: null,
       checkedByName: null,
@@ -297,6 +303,13 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
   async setItemQuantity(listId: string, itemId: string, quantity: string | null): Promise<void> {
     await updateDoc(doc(firestore, 'lists', listId, 'items', itemId), {
       quantity,
+      updatedAt: Date.now(),
+    });
+  }
+
+  async setItemFavorite(listId: string, itemId: string, favorite: boolean): Promise<void> {
+    await updateDoc(doc(firestore, 'lists', listId, 'items', itemId), {
+      favorite,
       updatedAt: Date.now(),
     });
   }

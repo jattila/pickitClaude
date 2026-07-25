@@ -42,6 +42,7 @@ export interface ListsRepository {
    * is keyed on the product, and "2 kg" is not a different product from "kg".
    */
   setItemQuantity(listId: string, itemId: string, quantity: string | null): Promise<void>;
+  setItemFavorite(listId: string, itemId: string, favorite: boolean): Promise<void>;
   checkItem(listId: string, itemId: string, checkedByName: string | null): Promise<void>;
   restoreItem(listId: string, itemId: string): Promise<void>;
   deleteItem(listId: string, itemId: string): Promise<void>;

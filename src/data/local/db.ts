@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS items (
   name TEXT NOT NULL,
   normalizedName TEXT NOT NULL,
   quantity TEXT,
+  favorite INTEGER NOT NULL DEFAULT 0,
   checked INTEGER NOT NULL DEFAULT 0,
   checkedByName TEXT,
   checkedAt INTEGER,
@@ -41,10 +42,29 @@ CREATE TABLE IF NOT EXISTS meta (
 );
 `;
 
+/**
+ * Columns added after the first release. The SCHEMA above only runs as CREATE
+ * TABLE IF NOT EXISTS, so it never touches a database that already exists —
+ * without this, an upgrading guest would keep the old table and every query
+ * touching the new column would fail.
+ */
+const ADDED_COLUMNS: { table: string; column: string; definition: string }[] = [
+  { table: 'items', column: 'favorite', definition: 'INTEGER NOT NULL DEFAULT 0' },
+];
+
+async function applyColumnMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
+  for (const { table, column, definition } of ADDED_COLUMNS) {
+    const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+    if (columns.some((c) => c.name === column)) continue;
+    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
     dbPromise = SQLite.openDatabaseAsync('pickit-guest.db').then(async (db) => {
       await db.execAsync(SCHEMA);
+      await applyColumnMigrations(db);
       return db;
     });
   }

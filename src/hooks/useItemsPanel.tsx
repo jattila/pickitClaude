@@ -24,8 +24,16 @@ import type { ShoppingItem } from '../data/types';
  */
 export function useItemsPanel(listId: string | null, ensureListId?: () => Promise<string>) {
   const repo = useRepository();
-  const { activeItems, checkedItems, renameItem, setItemQuantity, checkItem, restoreItem, deleteItem } =
-    useListItems(listId);
+  const {
+    activeItems,
+    checkedItems,
+    renameItem,
+    setItemQuantity,
+    setItemFavorite,
+    checkItem,
+    restoreItem,
+    deleteItem,
+  } = useListItems(listId);
   const list = useListMeta(listId);
   const settings = useUserSettings();
   const myUid = useAuthStore((state) => state.user?.uid);
@@ -88,6 +96,10 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
     { title: null, data: activeItems },
     { title: 'Megvéve', data: checkedItems },
   ].filter((section) => section.data.length > 0);
+
+  const toggleFavorite = (item: ShoppingItem) => {
+    setItemFavorite(item.id, !item.favorite).catch(() => undefined);
+  };
 
   const dialogs = (
     <>
@@ -203,6 +215,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
     setRestoreRequest,
     setRenamingItem,
     setQuantityItem,
+    toggleFavorite,
     setDeletingItem,
     checkItem,
     dialogs,

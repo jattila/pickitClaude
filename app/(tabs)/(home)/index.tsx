@@ -35,6 +35,7 @@ export default function ListsOverviewScreen() {
     setRestoreRequest,
     setRenamingItem,
     setQuantityItem,
+    toggleFavorite,
     setDeletingItem,
     checkItem,
     dialogs: itemDialogs,
@@ -133,6 +134,7 @@ export default function ListsOverviewScreen() {
                   onRequestRestore={() => setRestoreRequest(item)}
                   onRenameRequest={() => setRenamingItem(item)}
                   onQuantityRequest={() => setQuantityItem(item)}
+                  onToggleFavorite={() => toggleFavorite(item)}
                   onDeleteRequest={() => setDeletingItem(item)}
                 />
               </View>

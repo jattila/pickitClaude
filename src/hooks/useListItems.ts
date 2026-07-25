@@ -3,6 +3,12 @@ import { useRepository } from '../data/useRepository';
 import { useAuthStore } from '../store/authStore';
 import type { ShoppingItem } from '../data/types';
 
+/** Favourites first, then alphabetical — 'hu' so ö/ő/ü/ű land where Hungarian expects. */
+function byFavoriteThenName(a: ShoppingItem, b: ShoppingItem): number {
+  if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
+  return a.name.localeCompare(b.name, 'hu');
+}
+
 export function useListItems(listId: string | null) {
   const repo = useRepository();
   const user = useAuthStore((state) => state.user);
@@ -24,8 +30,11 @@ export function useListItems(listId: string | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo, listId]);
 
-  const activeItems = items.filter((item) => !item.checked);
-  const checkedItems = items.filter((item) => item.checked);
+  // Sorted here rather than in the query: the backing stores differ (SQLite vs
+  // Firestore), lists are small enough that it's free, and a Firestore orderBy
+  // would drop any document missing the field it sorts on.
+  const activeItems = items.filter((item) => !item.checked).sort(byFavoriteThenName);
+  const checkedItems = items.filter((item) => item.checked).sort(byFavoriteThenName);
 
   return {
     items,
@@ -43,6 +52,10 @@ export function useListItems(listId: string | null) {
     setItemQuantity: (itemId: string, quantity: string | null) => {
       if (!listId) throw new Error('Nincs kiválasztott lista.');
       return repo.setItemQuantity(listId, itemId, quantity);
+    },
+    setItemFavorite: (itemId: string, favorite: boolean) => {
+      if (!listId) throw new Error('Nincs kiválasztott lista.');
+      return repo.setItemFavorite(listId, itemId, favorite);
     },
     // The checker's name comes from the signed-in user, not the caller —
     // previously nothing passed it through and checked items always ended up

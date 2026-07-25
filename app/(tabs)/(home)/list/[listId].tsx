@@ -23,6 +23,7 @@ export default function ListDetailScreen() {
     setRestoreRequest,
     setRenamingItem,
     setQuantityItem,
+    toggleFavorite,
     setDeletingItem,
     checkItem,
     dialogs,
@@ -58,6 +59,7 @@ export default function ListDetailScreen() {
                     onRequestRestore={() => setRestoreRequest(item)}
                     onRenameRequest={() => setRenamingItem(item)}
                     onQuantityRequest={() => setQuantityItem(item)}
+                    onToggleFavorite={() => toggleFavorite(item)}
                     onDeleteRequest={() => setDeletingItem(item)}
                   />
                 </View>

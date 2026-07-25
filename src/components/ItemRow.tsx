@@ -8,6 +8,7 @@ interface ItemRowProps {
   onRequestRestore: () => void;
   onRenameRequest: () => void;
   onQuantityRequest: () => void;
+  onToggleFavorite: () => void;
   onDeleteRequest: () => void;
 }
 
@@ -23,16 +24,26 @@ export function ItemRow({
   onRequestRestore,
   onRenameRequest,
   onQuantityRequest,
+  onToggleFavorite,
   onDeleteRequest,
 }: ItemRowProps) {
+  const favoriteAction = {
+    key: 'favorite',
+    icon: item.favorite ? '⭐' : '☆',
+    label: item.favorite ? 'Nem kedvenc' : 'Kedvenc',
+    onPress: onToggleFavorite,
+  };
+
   const actions = item.checked
     ? [
         { key: 'restore', icon: '↩️', label: 'Visszateszem', onPress: onRequestRestore },
+        favoriteAction,
         { key: 'delete', icon: '🗑️', label: 'Törlés', onPress: onDeleteRequest, destructive: true },
       ]
     : [
         { key: 'rename', icon: '✏️', label: 'Átnevezés', onPress: onRenameRequest },
         { key: 'quantity', icon: '🔢', label: 'Mennyiség', onPress: onQuantityRequest },
+        favoriteAction,
         { key: 'delete', icon: '🗑️', label: 'Törlés', onPress: onDeleteRequest, destructive: true },
       ];
 
@@ -44,6 +55,7 @@ export function ItemRow({
         </View>
         <View style={styles.textColumn}>
           <Text style={[styles.name, item.checked && styles.nameChecked]}>
+            {item.favorite ? <Text style={styles.favoriteStar}>★ </Text> : null}
             {item.name}
             {item.quantity ? <Text style={styles.quantity}> · {item.quantity}</Text> : null}
           </Text>
@@ -97,6 +109,9 @@ const styles = StyleSheet.create({
   nameChecked: {
     textDecorationLine: 'line-through',
     color: '#999',
+  },
+  favoriteStar: {
+    color: '#E8A33D',
   },
   quantity: {
     color: '#888',

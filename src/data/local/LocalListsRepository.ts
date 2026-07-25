@@ -24,6 +24,7 @@ function toShoppingItem(row: any): ShoppingItem {
     name: row.name,
     normalizedName: row.normalizedName,
     quantity: row.quantity ?? null,
+    favorite: !!row.favorite,
     checked: !!row.checked,
     checkedBy: null,
     checkedByName: row.checkedByName ?? null,
@@ -180,8 +181,8 @@ class LocalListsRepositoryImpl implements ListsRepository {
     }
 
     await db.runAsync(
-      `INSERT INTO items (id, listId, name, normalizedName, quantity, checked, checkedByName, checkedAt, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?)`,
+      `INSERT INTO items (id, listId, name, normalizedName, quantity, favorite, checked, checkedByName, checkedAt, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, 0, 0, NULL, NULL, ?, ?)`,
       [id, listId, trimmed, normalizedName, quantity, now, now]
     );
     await this.upsertCatalog(trimmed, normalizedName, id, now);
@@ -193,6 +194,7 @@ class LocalListsRepositoryImpl implements ListsRepository {
       name: trimmed,
       normalizedName,
       quantity,
+      favorite: false,
       checked: false,
       checkedBy: null,
       checkedByName: null,
@@ -247,14 +249,17 @@ class LocalListsRepositoryImpl implements ListsRepository {
 
     await db.runAsync('DELETE FROM items WHERE listId = ? AND id = ?', [listId, itemId]);
     await db.runAsync(
-      `INSERT INTO items (id, listId, name, normalizedName, quantity, checked, checkedByName, checkedAt, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO items (id, listId, name, normalizedName, quantity, favorite, checked, checkedByName, checkedAt, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newId,
         listId,
         trimmed,
         normalizedName,
         existing.quantity,
+        // Renaming re-inserts the row under a new id; anything omitted here is
+        // silently dropped, so every column has to be carried across.
+        existing.favorite,
         existing.checked,
         existing.checkedByName,
         existing.checkedAt,
@@ -270,6 +275,17 @@ class LocalListsRepositoryImpl implements ListsRepository {
     const db = await getDb();
     await db.runAsync('UPDATE items SET quantity = ?, updatedAt = ? WHERE listId = ? AND id = ?', [
       quantity,
+      Date.now(),
+      listId,
+      itemId,
+    ]);
+    await this.notifyItemsChanged(listId);
+  }
+
+  async setItemFavorite(listId: string, itemId: string, favorite: boolean): Promise<void> {
+    const db = await getDb();
+    await db.runAsync('UPDATE items SET favorite = ?, updatedAt = ? WHERE listId = ? AND id = ?', [
+      favorite ? 1 : 0,
       Date.now(),
       listId,
       itemId,

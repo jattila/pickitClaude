@@ -77,6 +77,7 @@ export async function migrateGuestDataToCloud(uid: string): Promise<void> {
             name: item.name,
             normalizedName: item.normalizedName,
             quantity: item.quantity ?? null,
+            favorite: !!item.favorite,
             checked: !!item.checked,
             checkedBy: item.checked ? uid : null,
             checkedByName: item.checkedByName ?? null,
