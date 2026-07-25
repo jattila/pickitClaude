@@ -12,9 +12,13 @@ export function useGroupDefaultList(groupId: string) {
   useEffect(() => {
     let cancelled = false;
     setListId(null);
-    getExistingGroupDefaultListId(groupId).then((id) => {
-      if (!cancelled) setListId(id);
-    });
+    getExistingGroupDefaultListId(groupId)
+      .then((id) => {
+        if (!cancelled) setListId(id);
+      })
+      // Leaves listId null so the first add resolves it via ensureListId
+      // instead of surfacing an unhandled rejection.
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };

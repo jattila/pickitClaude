@@ -126,22 +126,36 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
 
   async getExistingDefaultListId(): Promise<string | null> {
     const uid = requireUid();
-    const userSnap = await getDoc(doc(firestore, 'users', uid));
-    const defaultListId = userSnap.exists() ? (userSnap.data() as DocumentData).defaultListId : null;
+    const userSnap = await getDoc(doc(firestore, 'users', uid)).catch(() => null);
+    const defaultListId = userSnap?.exists() ? (userSnap.data() as DocumentData).defaultListId : null;
     if (!defaultListId) return null;
-    const existing = await getDoc(doc(firestore, 'lists', defaultListId));
-    return existing.exists() ? defaultListId : null;
+    // If we know the id but can't reach/verify the doc (offline), trust the id
+    // from the profile rather than reporting "no default list".
+    const existing = await getDoc(doc(firestore, 'lists', defaultListId)).catch(() => null);
+    return !existing || existing.exists() ? defaultListId : null;
   }
 
   async getOrCreateDefaultList(): Promise<ShoppingList> {
     const uid = requireUid();
     const userRef = doc(firestore, 'users', uid);
-    const userSnap = await getDoc(userRef);
-    const defaultListId = userSnap.exists() ? (userSnap.data() as DocumentData).defaultListId : null;
+    const userSnap = await getDoc(userRef).catch(() => null);
+    const defaultListId = userSnap?.exists() ? (userSnap.data() as DocumentData).defaultListId : null;
 
     if (defaultListId) {
-      const existing = await getDoc(doc(firestore, 'lists', defaultListId));
-      if (existing.exists()) return toShoppingList(existing as QueryDocumentSnapshot<DocumentData>);
+      const existing = await getDoc(doc(firestore, 'lists', defaultListId)).catch(() => null);
+      if (existing?.exists()) return toShoppingList(existing as QueryDocumentSnapshot<DocumentData>);
+      // Couldn't read it, but the profile says it exists — reuse the id instead
+      // of minting a second "Bevásárlólista".
+      if (!existing) {
+        return { id: defaultListId, name: 'Bevásárlólista', groupId: null, createdAt: 0, updatedAt: 0 };
+      }
+    }
+
+    // Unlike the group default list (deterministic id), the personal one gets a
+    // random id — creating it without being able to read the profile first
+    // would risk a duplicate list once back online, so refuse instead.
+    if (!userSnap) {
+      throw new Error('Offline állapotban nem hozható létre az alapértelmezett lista. Csatlakozz az internethez.');
     }
 
     const list = await this.createList('Bevásárlólista', null, true);
@@ -194,41 +208,33 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     const itemRef = doc(firestore, 'lists', listId, 'items', id);
 
     // getDoc() throws while offline unless this exact doc is already cached
-    // (a brand-new item never is) — swallow that and treat it as "can't tell
-    // yet" rather than letting it bubble up as an unhandled add-item error.
-    let existingSnap: QueryDocumentSnapshot<DocumentData> | null = null;
-    let confirmedNew = false;
-    try {
-      const snap = await getDoc(itemRef);
-      if (snap.exists()) existingSnap = snap as QueryDocumentSnapshot<DocumentData>;
-      else confirmedNew = true;
-    } catch {
-      // offline & uncached: neither confirmed to exist nor confirmed new
-    }
-
-    if (existingSnap) {
-      const item = toShoppingItem(listId, existingSnap);
+    // (a brand-new item never is), so treat a failure as "not found" and fall
+    // through to the write. Callers screen for already-present items against
+    // the live items listener first (see useItemsPanel), and that data *is*
+    // cache-backed offline — so this check is a backstop, not the guard.
+    const existingSnap = await getDoc(itemRef).catch(() => null);
+    if (existingSnap?.exists()) {
+      const item = toShoppingItem(listId, existingSnap as QueryDocumentSnapshot<DocumentData>);
       return { item, wasAlreadyChecked: item.checked };
     }
 
     const uid = requireUid();
-    await setDoc(
-      itemRef,
-      {
-        name: trimmed,
-        normalizedName,
-        quantity,
-        updatedAt: now,
-        // Only stamp the initial checked-state when we've actually confirmed
-        // this doc doesn't exist yet — otherwise (offline, unverifiable) a
-        // plain overwrite could silently un-check an item someone else
-        // already bought, once this queued write eventually syncs.
-        ...(confirmedNew
-          ? { checked: false, checkedBy: null, checkedByName: null, checkedAt: null, addedBy: uid, createdAt: now }
-          : {}),
-      },
-      { merge: true }
-    );
+    // Every field must be written, including the initial checked-state: the
+    // items query orders by `checked` and `createdAt`, and Firestore drops
+    // documents that are missing an orderBy field — a partial write here
+    // would create an item that never shows up in the list at all.
+    await setDoc(itemRef, {
+      name: trimmed,
+      normalizedName,
+      quantity,
+      checked: false,
+      checkedBy: null,
+      checkedByName: null,
+      checkedAt: null,
+      addedBy: uid,
+      createdAt: now,
+      updatedAt: now,
+    });
     // Catalog is maintained server-side by the onItemCreated trigger, which
     // routes the entry to the group's or the owner's catalog as appropriate.
 

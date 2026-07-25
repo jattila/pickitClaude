@@ -40,8 +40,20 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
   const scrollViewRef = useRef<ScrollView>(null);
 
   const handleAdd = async (name: string) => {
-    setScrollTargetId(toItemId(name).id);
+    const newId = toItemId(name).id;
+    setScrollTargetId(newId);
     try {
+      // Screen against the items already on screen before writing. This is the
+      // real "don't re-add / don't silently un-check" guard: it comes from the
+      // live listener, which is cache-backed and so still correct offline,
+      // unlike a fresh getDoc() for a document the client has never fetched.
+      const alreadyOnList = [...activeItems, ...checkedItems].find((item) => item.id === newId);
+      if (alreadyOnList) {
+        setScrollTargetId(alreadyOnList.checked ? null : newId);
+        if (alreadyOnList.checked) setPendingRestoreConfirm(alreadyOnList);
+        return;
+      }
+
       const targetId = listId ?? (ensureListId ? await ensureListId() : null);
       if (!targetId) {
         setScrollTargetId(null);

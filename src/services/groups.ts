@@ -202,8 +202,11 @@ function groupDefaultListId(groupId: string): string {
 /** Returns the group's shared quick-add list id only if it already exists (never creates). */
 export async function getExistingGroupDefaultListId(groupId: string): Promise<string | null> {
   const ref = doc(firestore, 'lists', groupDefaultListId(groupId));
-  const snap = await getDoc(ref);
-  return snap.exists() ? ref.id : null;
+  // Offline with nothing cached, getDoc() throws rather than resolving "absent";
+  // reporting no list would strand the group's quick-add, so assume it exists —
+  // the id is deterministic, so it's the right one either way.
+  const snap = await getDoc(ref).catch(() => null);
+  return !snap || snap.exists() ? ref.id : null;
 }
 
 /**
@@ -214,11 +217,13 @@ export async function getExistingGroupDefaultListId(groupId: string): Promise<st
 export async function getOrCreateGroupDefaultList(groupId: string): Promise<ShoppingList> {
   const uid = requireUid();
   const ref = doc(firestore, 'lists', groupDefaultListId(groupId));
-  const snap = await getDoc(ref);
-  if (snap.exists()) {
+  const snap = await getDoc(ref).catch(() => null);
+  if (snap?.exists()) {
     const data = snap.data() as DocumentData;
     return { id: ref.id, name: data.name, groupId, createdAt: data.createdAt, updatedAt: data.updatedAt };
   }
+  // Safe to write blind when the read failed (offline): the id is derived from
+  // the group id, so this converges on the same doc instead of duplicating.
 
   const now = Date.now();
   await setDoc(ref, {
