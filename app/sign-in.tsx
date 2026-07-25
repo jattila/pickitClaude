@@ -54,6 +54,12 @@ export default function SignInScreen() {
         <Pressable onPress={() => router.push('/forgot-password')}>
           <Text style={styles.link}>Elfelejtett jelszó</Text>
         </Pressable>
+
+        {/* replace rather than push: coming from sign-up, this would otherwise
+            stack the two auth screens on top of each other indefinitely. */}
+        <Pressable onPress={() => router.replace('/sign-up')}>
+          <Text style={styles.link}>Még nincs fiókom, regisztrálok</Text>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -83,7 +83,7 @@ export default function SignUpScreen() {
           <Text style={styles.buttonLabel}>{submitting ? 'Regisztráció…' : 'Regisztráció'}</Text>
         </Pressable>
 
-        <Pressable onPress={() => router.push('/sign-in')}>
+        <Pressable onPress={() => router.replace('/sign-in')}>
           <Text style={styles.link}>Már van fiókom, bejelentkezem</Text>
         </Pressable>
       </ScrollView>

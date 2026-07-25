@@ -66,8 +66,8 @@ export default function ListsOverviewScreen() {
           headerRight: user
             ? undefined
             : () => (
-                <Pressable onPress={() => router.push('/sign-in')} hitSlop={8}>
-                  <Text style={styles.signInLink}>Belépés</Text>
+                <Pressable style={styles.signInButton} onPress={() => router.push('/sign-in')} hitSlop={8}>
+                  <Text style={styles.signInLabel}>Belépés</Text>
                 </Pressable>
               ),
         }}
@@ -235,11 +235,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 16,
   },
-  signInLink: {
-    color: '#4A90D9',
-    fontSize: 15,
+  signInButton: {
+    backgroundColor: '#4A90D9',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  signInLabel: {
+    color: 'white',
+    fontSize: 14,
     fontWeight: '600',
-    paddingHorizontal: 4,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
