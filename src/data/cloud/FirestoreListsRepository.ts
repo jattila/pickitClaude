@@ -214,8 +214,15 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     // cache-backed offline — so this check is a backstop, not the guard.
     const existingSnap = await getDoc(itemRef).catch(() => null);
     if (existingSnap?.exists()) {
-      const item = toShoppingItem(listId, existingSnap as QueryDocumentSnapshot<DocumentData>);
-      return { item, wasAlreadyChecked: item.checked };
+      const data = existingSnap.data() as DocumentData;
+      // A doc missing the fields the items query orders by is invisible in the
+      // list, yet still blocks re-adding it — re-adding is the only way a user
+      // can reach it, so fall through and rewrite it in full to repair it.
+      const isComplete = data.createdAt !== undefined && data.checked !== undefined;
+      if (isComplete) {
+        const item = toShoppingItem(listId, existingSnap as QueryDocumentSnapshot<DocumentData>);
+        return { item, wasAlreadyChecked: item.checked };
+      }
     }
 
     const uid = requireUid();
