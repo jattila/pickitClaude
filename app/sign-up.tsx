@@ -5,9 +5,11 @@ import { createUserWithEmailAndPassword, updateProfile } from '@react-native-fir
 import { auth } from '../src/services/firebase';
 import { migrateGuestDataToCloud } from '../src/services/migration';
 import { createDefaultUserProfile } from '../src/services/userProfile';
+import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { isConnected } = useNetworkStatus();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,9 +73,12 @@ export default function SignUpScreen() {
           style={styles.input}
         />
 
+        {!isConnected ? (
+          <Text style={styles.error}>Nincs internetkapcsolat — a regisztrációhoz kapcsolat kell.</Text>
+        ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Pressable style={styles.button} onPress={submit} disabled={submitting}>
+        <Pressable style={styles.button} onPress={submit} disabled={submitting || !isConnected}>
           <Text style={styles.buttonLabel}>{submitting ? 'Regisztráció…' : 'Regisztráció'}</Text>
         </Pressable>
 

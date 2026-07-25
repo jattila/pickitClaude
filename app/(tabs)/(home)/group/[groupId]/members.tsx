@@ -4,9 +4,11 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useGroupMembers } from '../../../../../src/hooks/useGroupMembers';
 import { useGroups } from '../../../../../src/hooks/useGroups';
 import { createInvite } from '../../../../../src/services/groups';
+import { useNetworkStatus } from '../../../../../src/hooks/useNetworkStatus';
 
 export default function GroupMembersScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
+  const { isConnected } = useNetworkStatus();
   const { members, loading } = useGroupMembers(groupId);
   const { groups } = useGroups();
   const group = groups.find((g) => g.id === groupId);
@@ -50,9 +52,12 @@ export default function GroupMembersScreen() {
         />
       )}
 
+      {!isConnected ? (
+        <Text style={styles.error}>Nincs internetkapcsolat — a meghívó készítéséhez kapcsolat kell.</Text>
+      ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable style={styles.inviteButton} onPress={handleInvite} disabled={creatingInvite}>
+      <Pressable style={styles.inviteButton} onPress={handleInvite} disabled={creatingInvite || !isConnected}>
         <Text style={styles.inviteButtonLabel}>
           {creatingInvite ? 'Meghívó készítése…' : '+ Tag meghívása'}
         </Text>

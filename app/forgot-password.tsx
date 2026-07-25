@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
+import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
 
 export default function ForgotPasswordScreen() {
+  const { isConnected } = useNetworkStatus();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +37,11 @@ export default function ForgotPasswordScreen() {
               keyboardType="email-address"
               style={styles.input}
             />
+            {!isConnected ? (
+              <Text style={styles.error}>Nincs internetkapcsolat — ehhez kapcsolat kell.</Text>
+            ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Pressable style={styles.button} onPress={submit}>
+            <Pressable style={styles.button} onPress={submit} disabled={!isConnected}>
               <Text style={styles.buttonLabel}>Visszaállító email küldése</Text>
             </Pressable>
           </>

@@ -3,9 +3,11 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
+import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const { isConnected } = useNetworkStatus();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -45,9 +47,12 @@ export default function SignInScreen() {
           style={styles.input}
         />
 
+        {!isConnected ? (
+          <Text style={styles.error}>Nincs internetkapcsolat — a bejelentkezéshez kapcsolat kell.</Text>
+        ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Pressable style={styles.button} onPress={submit} disabled={submitting}>
+        <Pressable style={styles.button} onPress={submit} disabled={submitting || !isConnected}>
           <Text style={styles.buttonLabel}>{submitting ? 'Belépés…' : 'Bejelentkezés'}</Text>
         </Pressable>
 

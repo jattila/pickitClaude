@@ -3,24 +3,29 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/store/authStore';
 import { getInvitePreview, redeemInvite } from '../../src/services/groups';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 
 export default function JoinScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const { isConnected } = useNetworkStatus();
 
   const [groupName, setGroupName] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    getInvitePreview(code).then((preview) => {
-      if (!preview) setNotFound(true);
-      else setGroupName(preview.groupName);
-    });
-  }, [code, user]);
+    if (!user || !isConnected) return;
+    getInvitePreview(code)
+      .then((preview) => {
+        if (!preview) setNotFound(true);
+        else setGroupName(preview.groupName);
+      })
+      .catch(() => setPreviewError('Nem sikerült betölteni a meghívót.'));
+  }, [code, user, isConnected]);
 
   const handleJoin = async () => {
     setError(null);
@@ -69,11 +74,18 @@ export default function JoinScreen() {
       {groupName ? (
         <>
           <Text style={styles.title}>Csatlakozol ehhez: "{groupName}"</Text>
+          {!isConnected ? (
+            <Text style={styles.error}>Nincs internetkapcsolat — a csatlakozáshoz kapcsolat kell.</Text>
+          ) : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={styles.button} onPress={handleJoin} disabled={joining}>
+          <Pressable style={styles.button} onPress={handleJoin} disabled={joining || !isConnected}>
             <Text style={styles.buttonLabel}>{joining ? 'Csatlakozás…' : 'Csatlakozás'}</Text>
           </Pressable>
         </>
+      ) : !isConnected ? (
+        <Text style={styles.error}>Nincs internetkapcsolat — a meghívó megtekintéséhez kapcsolat kell.</Text>
+      ) : previewError ? (
+        <Text style={styles.error}>{previewError}</Text>
       ) : (
         <Text style={styles.text}>Betöltés…</Text>
       )}

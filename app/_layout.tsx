@@ -2,6 +2,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { HamburgerMenu } from '../src/components/HamburgerMenu';
+import { OfflineBanner } from '../src/components/OfflineBanner';
 import '../src/store/authStore';
 
 export default function RootLayout() {
@@ -12,6 +13,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
         <HamburgerMenu />
+        <OfflineBanner />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
