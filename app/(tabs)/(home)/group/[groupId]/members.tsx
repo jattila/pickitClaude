@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { FlatList, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useGroupMembers } from '../../../../../src/hooks/useGroupMembers';
 import { useGroups } from '../../../../../src/hooks/useGroups';
-import { createInvite } from '../../../../../src/services/groups';
+import { createInvite, setMemberSuspended } from '../../../../../src/services/groups';
 import { useNetworkStatus } from '../../../../../src/hooks/useNetworkStatus';
 import { useAuthStore } from '../../../../../src/store/authStore';
+import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
+import type { GroupMember } from '../../../../../src/data/types';
 
 export default function GroupMembersScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
@@ -17,6 +20,22 @@ export default function GroupMembersScreen() {
   const group = groups.find((g) => g.id === groupId);
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingSuspend, setPendingSuspend] = useState<GroupMember | null>(null);
+  const [working, setWorking] = useState(false);
+
+  const isOwner = !!currentUid && group?.ownerId === currentUid;
+
+  const applySuspension = async (member: GroupMember) => {
+    setError(null);
+    setWorking(true);
+    try {
+      await setMemberSuspended(groupId, member.uid, !member.suspended);
+    } catch (e: any) {
+      setError(e?.message ?? 'Nem sikerült módosítani a tag állapotát.');
+    } finally {
+      setWorking(false);
+    }
+  };
 
   const handleInvite = async () => {
     setError(null);
@@ -55,7 +74,7 @@ export default function GroupMembersScreen() {
                 delayLongPress={350}
               >
                 <View style={styles.memberTextColumn}>
-                  <Text style={styles.memberName}>
+                  <Text style={[styles.memberName, item.suspended && styles.memberNameSuspended]}>
                     {item.displayName || 'Névtelen'}
                     {item.uid === currentUid ? <Text style={styles.selfTag}> (én)</Text> : null}
                   </Text>
@@ -65,7 +84,26 @@ export default function GroupMembersScreen() {
                     </Text>
                   ) : null}
                 </View>
-                <Text style={styles.memberRole}>{item.role === 'owner' ? 'tulajdonos' : 'tag'}</Text>
+
+                <Text style={styles.memberRole}>
+                  {item.suspended ? 'felfüggesztve' : item.role === 'owner' ? 'tulajdonos' : 'tag'}
+                </Text>
+
+                {/* The owner can't suspend themselves — that would lock the group's only admin out. */}
+                {isOwner && item.uid !== currentUid ? (
+                  <Pressable
+                    onPress={() => setPendingSuspend(item)}
+                    hitSlop={10}
+                    disabled={working || !isConnected}
+                    style={styles.suspendButton}
+                  >
+                    <Ionicons
+                      name={item.suspended ? 'person-add-outline' : 'person-remove-outline'}
+                      size={20}
+                      color={item.suspended ? '#4A90D9' : '#D9534F'}
+                    />
+                  </Pressable>
+                ) : null}
               </Pressable>
             );
           }}
@@ -82,6 +120,23 @@ export default function GroupMembersScreen() {
           {creatingInvite ? 'Meghívó készítése…' : '+ Tag meghívása'}
         </Text>
       </Pressable>
+
+      <ConfirmDialog
+        visible={!!pendingSuspend}
+        title={pendingSuspend?.suspended ? 'Tag visszaengedélyezése' : 'Tag felfüggesztése'}
+        message={
+          pendingSuspend?.suspended
+            ? `"${pendingSuspend?.displayName || 'A tag'}" újra hozzáfér a csoport listáihoz, és e-mailben értesítjük róla.`
+            : `"${pendingSuspend?.displayName || 'A tag'}" nem fogja látni a csoport listáit és tételeit, amíg vissza nem engedélyezed. E-mailben értesítjük, és megkapja a te e-mail címedet is, hogy jelezni tudjon.`
+        }
+        confirmLabel={pendingSuspend?.suspended ? 'Visszaengedélyezés' : 'Felfüggesztés'}
+        destructive={!pendingSuspend?.suspended}
+        onCancel={() => setPendingSuspend(null)}
+        onConfirm={() => {
+          if (pendingSuspend) applySuspension(pendingSuspend);
+          setPendingSuspend(null);
+        }}
+      />
     </View>
   );
 }
@@ -115,6 +170,13 @@ const styles = StyleSheet.create({
   },
   memberName: {
     fontSize: 16,
+  },
+  memberNameSuspended: {
+    color: '#AAA',
+    textDecorationLine: 'line-through',
+  },
+  suspendButton: {
+    marginLeft: 12,
   },
   selfTag: {
     color: '#888',

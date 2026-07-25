@@ -56,4 +56,6 @@ export interface GroupMember {
   email: string | null;
   role: 'owner' | 'member';
   joinedAt: number;
+  /** Suspended members are pulled out of the group's memberIds, so every rule denies them until reinstated. */
+  suspended: boolean;
 }

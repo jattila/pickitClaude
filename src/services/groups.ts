@@ -44,6 +44,7 @@ function toGroupMember(snap: QueryDocumentSnapshot<DocumentData>): GroupMember {
     email: data.email ?? null,
     role: data.role,
     joinedAt: data.joinedAt,
+    suspended: data.suspended === true,
   };
 }
 
@@ -160,6 +161,23 @@ export async function getInvitePreview(code: string): Promise<{ groupName: strin
   const result = await call({ code: code.trim().toUpperCase() });
   if (!result.data.groupName) return null;
   return { groupName: result.data.groupName };
+}
+
+/**
+ * Owner-only. Suspending drops the member from the group's memberIds (so every
+ * rule denies them) and queues an email telling them who to contact; the flag
+ * on their member doc is what lets the owner reinstate them later.
+ */
+export async function setMemberSuspended(
+  groupId: string,
+  uid: string,
+  suspended: boolean
+): Promise<void> {
+  const call = httpsCallable<{ groupId: string; uid: string; suspended: boolean }, { suspended: boolean }>(
+    functions,
+    'setMemberSuspended'
+  );
+  await call({ groupId, uid, suspended });
 }
 
 function toGroupList(snap: QueryDocumentSnapshot<DocumentData>) {
