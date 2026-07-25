@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import type { ScrollView } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import { useRepository } from '../data/useRepository';
@@ -40,15 +41,23 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
 
   const handleAdd = async (name: string) => {
     setScrollTargetId(toItemId(name).id);
-    const targetId = listId ?? (ensureListId ? await ensureListId() : null);
-    if (!targetId) {
+    try {
+      const targetId = listId ?? (ensureListId ? await ensureListId() : null);
+      if (!targetId) {
+        setScrollTargetId(null);
+        return;
+      }
+      const { wasAlreadyChecked, item } = await repo.addItem(targetId, name);
+      if (wasAlreadyChecked) {
+        setScrollTargetId(null);
+        setPendingRestoreConfirm(item);
+      }
+    } catch (e: any) {
+      // Fires from a Pressable's onPress, so an uncaught rejection here would
+      // otherwise surface as an unhandled-promise-rejection redbox instead of
+      // a normal, recoverable error.
       setScrollTargetId(null);
-      return;
-    }
-    const { wasAlreadyChecked, item } = await repo.addItem(targetId, name);
-    if (wasAlreadyChecked) {
-      setScrollTargetId(null);
-      setPendingRestoreConfirm(item);
+      Alert.alert('Nem sikerült hozzáadni', e?.message ?? 'Ismeretlen hiba történt.');
     }
   };
 

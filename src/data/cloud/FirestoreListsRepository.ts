@@ -79,13 +79,20 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     return onSnapshot(q, (snap) => onChange(snap.docs.map(toShoppingList)));
   }
 
-  /** Checks for a name collision among sibling lists in the same scope (personal, or a given group). */
+  /**
+   * Checks for a name collision among sibling lists in the same scope
+   * (personal, or a given group). The lists query is normally cached (it
+   * backs the visible overview screen), but if it isn't — offline, cold
+   * start — this can't confirm a collision either way; assume none rather
+   * than blocking list creation/renaming while offline.
+   */
   private async listNameExists(groupId: string | null, name: string, excludeListId?: string): Promise<boolean> {
     const uid = requireUid();
     const q = groupId
       ? query(collection(firestore, 'lists'), where('groupId', '==', groupId))
       : query(collection(firestore, 'lists'), where('ownerId', '==', uid), where('groupId', '==', null));
-    const snap = await getDocs(q);
+    const snap = await getDocs(q).catch(() => null);
+    if (!snap) return false;
     const target = normalizeName(name);
     return snap.docs.some(
       (d) => d.id !== excludeListId && normalizeName((d.data() as DocumentData).name) === target
@@ -143,8 +150,8 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
   }
 
   async renameList(listId: string, name: string): Promise<void> {
-    const current = await getDoc(doc(firestore, 'lists', listId));
-    const groupId = current.exists() ? ((current.data() as DocumentData).groupId ?? null) : null;
+    const current = await getDoc(doc(firestore, 'lists', listId)).catch(() => null);
+    const groupId = current?.exists() ? ((current.data() as DocumentData).groupId ?? null) : null;
     if (await this.listNameExists(groupId, name, listId)) {
       throw new Error('Már van ilyen nevű lista ebben a körben.');
     }
@@ -186,24 +193,42 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     const now = Date.now();
     const itemRef = doc(firestore, 'lists', listId, 'items', id);
 
-    const existingSnap = await getDoc(itemRef);
-    if (existingSnap.exists()) {
-      const item = toShoppingItem(listId, existingSnap as QueryDocumentSnapshot<DocumentData>);
+    // getDoc() throws while offline unless this exact doc is already cached
+    // (a brand-new item never is) — swallow that and treat it as "can't tell
+    // yet" rather than letting it bubble up as an unhandled add-item error.
+    let existingSnap: QueryDocumentSnapshot<DocumentData> | null = null;
+    let confirmedNew = false;
+    try {
+      const snap = await getDoc(itemRef);
+      if (snap.exists()) existingSnap = snap as QueryDocumentSnapshot<DocumentData>;
+      else confirmedNew = true;
+    } catch {
+      // offline & uncached: neither confirmed to exist nor confirmed new
+    }
+
+    if (existingSnap) {
+      const item = toShoppingItem(listId, existingSnap);
       return { item, wasAlreadyChecked: item.checked };
     }
 
     const uid = requireUid();
-    await setDoc(itemRef, {
-      name: trimmed,
-      normalizedName,
-      quantity,
-      checked: false,
-      checkedByName: null,
-      checkedAt: null,
-      addedBy: uid,
-      createdAt: now,
-      updatedAt: now,
-    });
+    await setDoc(
+      itemRef,
+      {
+        name: trimmed,
+        normalizedName,
+        quantity,
+        updatedAt: now,
+        // Only stamp the initial checked-state when we've actually confirmed
+        // this doc doesn't exist yet — otherwise (offline, unverifiable) a
+        // plain overwrite could silently un-check an item someone else
+        // already bought, once this queued write eventually syncs.
+        ...(confirmedNew
+          ? { checked: false, checkedBy: null, checkedByName: null, checkedAt: null, addedBy: uid, createdAt: now }
+          : {}),
+      },
+      { merge: true }
+    );
     // Catalog is maintained server-side by the onItemCreated trigger, which
     // routes the entry to the group's or the owner's catalog as appropriate.
 
@@ -235,11 +260,20 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     }
 
     const newRef = doc(firestore, 'lists', listId, 'items', newId);
-    const [existing, collision] = await Promise.all([getDoc(oldRef), getDoc(newRef)]);
-    if (collision.exists()) throw new Error('Már van ilyen nevű tétel ezen a listán.');
-    if (!existing.exists()) throw new Error('A tétel már nem létezik.');
 
-    const data = existing.data() as DocumentData;
+    // The item being renamed is already visible on-screen, so it's normally
+    // cached from the active items listener even offline; the *target* name's
+    // doc usually isn't, so that getDoc() is the one likely to throw offline —
+    // treat that as "can't confirm a collision" rather than blocking the rename.
+    const existingSnap = await getDoc(oldRef).catch(() => null);
+    if (!existingSnap?.exists()) throw new Error('A tétel jelenleg nem érhető el az átnevezéshez.');
+
+    const collisionExists = await getDoc(newRef)
+      .then((snap) => snap.exists())
+      .catch(() => false);
+    if (collisionExists) throw new Error('Már van ilyen nevű tétel ezen a listán.');
+
+    const data = existingSnap.data() as DocumentData;
     const batch = writeBatch(firestore);
     batch.delete(oldRef);
     batch.set(newRef, { ...data, name: trimmed, normalizedName, updatedAt: now });
