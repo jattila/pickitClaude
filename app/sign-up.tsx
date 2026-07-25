@@ -6,6 +6,7 @@ import { auth } from '../src/services/firebase';
 import { migrateGuestDataToCloud } from '../src/services/migration';
 import { createDefaultUserProfile } from '../src/services/userProfile';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
+import { PasswordInput } from '../src/components/PasswordInput';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -65,12 +66,12 @@ export default function SignUpScreen() {
           keyboardType="email-address"
           style={styles.input}
         />
-        <TextInput
+        <PasswordInput
           value={password}
           onChangeText={setPassword}
           placeholder="Jelszó (min. 6 karakter)"
-          secureTextEntry
-          style={styles.input}
+          newPassword
+          onSubmitEditing={submit}
         />
 
         {!isConnected ? (

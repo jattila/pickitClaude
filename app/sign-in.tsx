@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
+import { PasswordInput } from '../src/components/PasswordInput';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -39,13 +40,7 @@ export default function SignInScreen() {
           keyboardType="email-address"
           style={styles.input}
         />
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Jelszó"
-          secureTextEntry
-          style={styles.input}
-        />
+        <PasswordInput value={password} onChangeText={setPassword} onSubmitEditing={submit} />
 
         {!isConnected ? (
           <Text style={styles.error}>Nincs internetkapcsolat — a bejelentkezéshez kapcsolat kell.</Text>
