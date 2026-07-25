@@ -2,6 +2,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { sendPushToUser } from '../push/sendPush';
+import { isUserPresent } from '../lib/presence';
 
 const DEFAULT_INTERVAL_MINUTES = 60;
 const USERS_PER_RUN = 200;
@@ -64,10 +65,16 @@ export const digestScheduler = onSchedule(
         const pendingRef = db.collection('users').doc(uid).collection('pendingDigest');
         const pendingSnap = await pendingRef.get();
 
-        // Nothing to report, or digests turned off: just roll the clock forward.
-        // Pending entries are still cleared when disabled, so re-enabling later
-        // doesn't deliver a pile of stale changes.
-        if (pendingSnap.empty || settings.digestEnabled === false) {
+        // Nothing to report, digests off, or the user is in the app right now
+        // (they can see the changes, a push would just repeat them): roll the
+        // clock forward without sending. Pending entries are cleared in all
+        // three cases, so re-enabling — or closing the app — doesn't deliver a
+        // pile of changes the user has already seen or opted out of.
+        if (
+          pendingSnap.empty ||
+          settings.digestEnabled === false ||
+          isUserPresent(userDoc.data(), now)
+        ) {
           const batch = db.batch();
           pendingSnap.docs.forEach((d) => batch.delete(d.ref));
           batch.update(userDoc.ref, { nextDigestDueAt: nextDue });

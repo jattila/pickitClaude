@@ -42,7 +42,14 @@ export const onItemUpdated = onDocumentUpdated('lists/{listId}/items/{itemId}', 
   if (!before.checked && after.checked) {
     const listSnap = await listRef.get();
     if (listSnap.exists) {
-      await recordPendingChange(listSnap.data()!, listId, after.checkedBy, 'checked');
+      await recordPendingChange(
+        listSnap.data()!,
+        listId,
+        after.checkedBy,
+        'checked',
+        after.name,
+        after.checkedByName
+      );
     }
   }
 });

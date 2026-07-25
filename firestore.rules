@@ -34,9 +34,11 @@ service cloud.firestore {
       // written only by digestScheduler / onUserSettingsUpdated via the Admin
       // SDK, which bypasses these rules — so the client can't hand itself a
       // due date and make the scheduler fire on every run.
+      // activeUntil is the client's own presence heartbeat. Lying about it only
+      // affects whether *this* user gets notified, so it's safe to let them write.
       allow update: if isSignedIn() && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['settings', 'defaultListId']);
+             .hasOnly(['settings', 'defaultListId', 'activeUntil']);
       allow delete: if false;
 
       match /devices/{tokenId} {

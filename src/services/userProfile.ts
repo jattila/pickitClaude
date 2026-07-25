@@ -6,6 +6,8 @@ export const DEFAULT_SETTINGS = {
   digestIntervalMinutes: 60,
   digestEnabled: true,
   recentPurchaseWarningEnabled: true,
+  /** Immediate push for group changes, sent only while the app isn't open. */
+  instantPushEnabled: true,
 };
 
 /** Seeds the users/{uid} profile doc right after registration. */

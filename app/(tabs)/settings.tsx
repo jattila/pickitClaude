@@ -80,6 +80,13 @@ export default function SettingsScreen() {
             />
             <View style={styles.divider} />
             <ToggleRow
+              label="Azonnali értesítés"
+              hint="Szólok a csoportos listák változásairól, de csak amikor nincs nyitva az app."
+              value={settings.instantPushEnabled}
+              onValueChange={(value) => updateSettings({ instantPushEnabled: value })}
+            />
+            <View style={styles.divider} />
+            <ToggleRow
               label="Összefoglaló értesítés"
               hint="Időnként egy push üzenetben összesítem a csoportjaid változásait."
               value={settings.digestEnabled}

@@ -44,5 +44,5 @@ export const onItemCreated = onDocumentCreated('lists/{listId}/items/{itemId}', 
     [counterField]: FieldValue.increment(1),
   });
 
-  await recordPendingChange(list, listId, item.addedBy, 'added');
+  await recordPendingChange(list, listId, item.addedBy, 'added', item.name);
 });
