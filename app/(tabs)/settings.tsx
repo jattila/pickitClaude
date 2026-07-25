@@ -1,18 +1,35 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signOut } from '@react-native-firebase/auth';
 import { auth } from '../../src/services/firebase';
 import { useAuthStore } from '../../src/store/authStore';
 import { PromptDialog } from '../../src/components/PromptDialog';
+import { ChoiceRow, ToggleRow } from '../../src/components/SettingRows';
+import { useEditableUserSettings } from '../../src/hooks/useUserSettings';
+
+const WINDOW_OPTIONS = [
+  { value: 15, label: '15 perc' },
+  { value: 30, label: '30 perc' },
+  { value: 60, label: '1 óra' },
+  { value: 180, label: '3 óra' },
+];
+
+const DIGEST_OPTIONS = [
+  { value: 30, label: '30 perc' },
+  { value: 60, label: '1 óra' },
+  { value: 180, label: '3 óra' },
+  { value: 720, label: '12 óra' },
+];
 
 export default function SettingsScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const { settings, updateSettings } = useEditableUserSettings();
   const [enteringCode, setEnteringCode] = useState(false);
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.sectionHeader}>Fiók</Text>
 
       {user ? (
@@ -44,6 +61,40 @@ export default function SettingsScreen() {
               <Text style={styles.buttonLabel}>Csatlakozás meghívó kóddal</Text>
             </Pressable>
           </View>
+
+          <Text style={styles.sectionHeader}>Értesítések</Text>
+          <View style={styles.card}>
+            <ToggleRow
+              label="Figyelmeztetés friss vásárlásra"
+              hint="Szólok, ha egy csoportos listán valaki más nemrég bejelölt egy tételt."
+              value={settings.recentPurchaseWarningEnabled}
+              onValueChange={(value) => updateSettings({ recentPurchaseWarningEnabled: value })}
+            />
+            <View style={styles.divider} />
+            <ChoiceRow
+              label="Mennyire számít frissnek"
+              hint="Ennél régebbi vásárlásokra már nem figyelmeztetlek."
+              options={WINDOW_OPTIONS}
+              value={settings.recentPurchaseWindowMinutes}
+              onSelect={(value) => updateSettings({ recentPurchaseWindowMinutes: value })}
+              disabled={!settings.recentPurchaseWarningEnabled}
+            />
+            <View style={styles.divider} />
+            <ToggleRow
+              label="Összefoglaló értesítés"
+              hint="Időnként egy push üzenetben összesítem a csoportjaid változásait."
+              value={settings.digestEnabled}
+              onValueChange={(value) => updateSettings({ digestEnabled: value })}
+            />
+            <View style={styles.divider} />
+            <ChoiceRow
+              label="Milyen gyakran"
+              options={DIGEST_OPTIONS}
+              value={settings.digestIntervalMinutes}
+              onSelect={(value) => updateSettings({ digestIntervalMinutes: value })}
+              disabled={!settings.digestEnabled}
+            />
+          </View>
         </>
       ) : null}
 
@@ -57,7 +108,7 @@ export default function SettingsScreen() {
           router.push(`/join/${code.trim().toUpperCase()}`);
         }}
       />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -65,7 +116,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  // Padding belongs on the content container, not the ScrollView itself.
+  content: {
     padding: 20,
+    // sectionHeader carries its own top margin, so the first one supplies the
+    // top inset — otherwise it would be doubled.
+    paddingTop: 0,
+    paddingBottom: 32,
   },
   sectionHeader: {
     fontSize: 13,
@@ -73,12 +131,18 @@ const styles = StyleSheet.create({
     color: '#888',
     textTransform: 'uppercase',
     marginBottom: 8,
+    marginTop: 20,
   },
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
     gap: 10,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 2,
   },
   email: {
     fontSize: 15,

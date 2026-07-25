@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { doc, onSnapshot, type DocumentData } from '@react-native-firebase/firestore';
+import { useCallback, useEffect, useState } from 'react';
+import { doc, onSnapshot, setDoc, type DocumentData } from '@react-native-firebase/firestore';
 import { firestore } from '../services/firebase';
 import { useAuthStore } from '../store/authStore';
 import { DEFAULT_SETTINGS } from '../services/userProfile';
@@ -23,4 +23,24 @@ export function useUserSettings(): UserSettings {
   }, [user]);
 
   return settings;
+}
+
+/**
+ * Read + write access for the settings screen. The write is a merge, so
+ * changing one field never drops the others, and the onSnapshot above
+ * reflects it back — no local optimistic state needed.
+ */
+export function useEditableUserSettings() {
+  const user = useAuthStore((state) => state.user);
+  const settings = useUserSettings();
+
+  const updateSettings = useCallback(
+    async (patch: Partial<UserSettings>) => {
+      if (!user) return;
+      await setDoc(doc(firestore, 'users', user.uid), { settings: patch }, { merge: true });
+    },
+    [user]
+  );
+
+  return { settings, updateSettings, canEdit: !!user };
 }
