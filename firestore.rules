@@ -33,6 +33,13 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
       }
 
+      // Digest counters: written only by the item triggers and cleared by
+      // digestScheduler (Admin SDK). The client never needs to touch them.
+      match /pendingDigest/{listId} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+        allow write: if false;
+      }
+
       // Personal catalog: client reads for autocomplete, and can rename/delete
       // entries via the catalog editor; new entries are only ever created by
       // the onItemCreated trigger (Admin SDK), never directly by the client.

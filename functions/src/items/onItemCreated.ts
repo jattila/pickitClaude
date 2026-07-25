@@ -1,6 +1,7 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { catalogDocForList } from './catalogPath';
+import { recordPendingChange } from '../digest/pendingChanges';
 
 export const onItemCreated = onDocumentCreated('lists/{listId}/items/{itemId}', async (event) => {
   const snap = event.data;
@@ -42,4 +43,6 @@ export const onItemCreated = onDocumentCreated('lists/{listId}/items/{itemId}', 
     lastActivityAt: now,
     [counterField]: FieldValue.increment(1),
   });
+
+  await recordPendingChange(list, listId, item.addedBy, 'added');
 });

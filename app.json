@@ -30,6 +30,7 @@
       "expo-router",
       "expo-sqlite",
       "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       [
         "expo-build-properties",
         {

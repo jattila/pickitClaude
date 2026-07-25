@@ -4,8 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { signOut } from '@react-native-firebase/auth';
-import { auth } from '../services/firebase';
+import { signOutFully } from '../services/session';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { useGroups } from '../hooks/useGroups';
@@ -129,7 +128,7 @@ export function HamburgerMenu() {
               label="Kijelentkezés"
               onPress={() => {
                 closeMenu();
-                signOut(auth);
+                signOutFully();
               }}
             />
           ) : (

@@ -1,6 +1,7 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { catalogDocForList } from './catalogPath';
+import { recordPendingChange } from '../digest/pendingChanges';
 
 export const onItemUpdated = onDocumentUpdated('lists/{listId}/items/{itemId}', async (event) => {
   const before = event.data?.before.data();
@@ -33,6 +34,15 @@ export const onItemUpdated = onDocumentUpdated('lists/{listId}/items/{itemId}', 
         { name: after.name, normalizedName: after.normalizedName, lastUsedAt: now },
         { merge: true }
       );
+    }
+  }
+
+  // Only a fresh check counts toward the digest — restoring an item to the list
+  // is a correction, not something worth waking other members up for.
+  if (!before.checked && after.checked) {
+    const listSnap = await listRef.get();
+    if (listSnap.exists) {
+      await recordPendingChange(listSnap.data()!, listId, after.checkedBy, 'checked');
     }
   }
 });

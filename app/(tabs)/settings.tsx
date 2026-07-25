@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { signOut } from '@react-native-firebase/auth';
-import { auth } from '../../src/services/firebase';
+import { signOutFully } from '../../src/services/session';
 import { useAuthStore } from '../../src/store/authStore';
 import { PromptDialog } from '../../src/components/PromptDialog';
 import { ChoiceRow, ToggleRow } from '../../src/components/SettingRows';
@@ -35,7 +34,7 @@ export default function SettingsScreen() {
       {user ? (
         <View style={styles.card}>
           <Text style={styles.email}>{user.email}</Text>
-          <Pressable style={styles.button} onPress={() => signOut(auth)}>
+          <Pressable style={styles.button} onPress={() => signOutFully()}>
             <Text style={styles.buttonLabel}>Kijelentkezés</Text>
           </Pressable>
         </View>

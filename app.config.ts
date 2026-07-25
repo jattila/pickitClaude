@@ -8,6 +8,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       ...config.ios?.infoPlist,
       ITSAppUsesNonExemptEncryption: false,
+      // Lets FCM deliver the digest while the app is backgrounded.
+      UIBackgroundModes: ['remote-notification'],
     },
   },
   android: {
