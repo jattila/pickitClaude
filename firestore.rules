@@ -27,7 +27,17 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read, write: if isSignedIn() && request.auth.uid == uid;
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      // Updates are limited to the two fields the client actually owns. The
+      // digest scheduling fields (nextDigestDueAt, lastDigestSentAt) are
+      // written only by digestScheduler / onUserSettingsUpdated via the Admin
+      // SDK, which bypasses these rules — so the client can't hand itself a
+      // due date and make the scheduler fire on every run.
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['settings', 'defaultListId']);
+      allow delete: if false;
 
       match /devices/{tokenId} {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
@@ -40,13 +50,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
-      // Personal catalog: client reads for autocomplete, and can rename/delete
-      // entries via the catalog editor; new entries are only ever created by
-      // the onItemCreated trigger (Admin SDK), never directly by the client.
+      // Personal catalog: client reads for autocomplete and edits entries via
+      // the catalog editor. Create has to be allowed too — the entry id is the
+      // slug of the name, so renaming to a name that slugs differently is a
+      // delete + create of a new doc, not an update.
       match /catalog/{catalogItemId} {
-        allow read: if isSignedIn() && request.auth.uid == uid;
-        allow update, delete: if isSignedIn() && request.auth.uid == uid;
-        allow create: if false;
+        allow read, create, update, delete: if isSignedIn() && request.auth.uid == uid;
       }
     }
 
@@ -74,12 +83,12 @@ service cloud.firestore {
         allow delete: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
       }
 
-      // Group catalog: entries are created by the onItemCreated trigger (Admin
-      // SDK); any current member can read, and rename/delete via the editor.
+      // Group catalog: any current member can read and edit. Create is allowed
+      // for the same reason as the personal catalog above — a rename that
+      // changes the slug writes a new doc rather than updating the old one.
       match /catalog/{catalogItemId} {
-        allow read: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data);
-        allow update, delete: if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data);
-        allow create: if false;
+        allow read, create, update, delete:
+          if isGroupMember(get(/databases/$(database)/documents/groups/$(groupId)).data);
       }
     }
 

@@ -34,5 +34,12 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "invites",
+      "fieldPath": "expiresAtTime",
+      "ttl": true,
+      "indexes": []
+    }
+  ]
 }

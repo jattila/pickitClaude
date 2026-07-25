@@ -1,5 +1,5 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { generateInviteCode } from '../lib/generateCode';
 
 const EXPIRES_IN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -43,6 +43,11 @@ export const createInvite = onCall(async (request) => {
     createdBy: uid,
     createdAt: now,
     expiresAt: now + EXPIRES_IN_MS,
+    // Duplicate of expiresAt as a Timestamp, purely so the Firestore TTL policy
+    // can garbage-collect spent invites — TTL only understands Timestamp
+    // fields and silently ignores numeric ones. The millis field above stays
+    // the one the redeem/preview checks read.
+    expiresAtTime: Timestamp.fromMillis(now + EXPIRES_IN_MS),
     maxUses: null,
     useCount: 0,
     revoked: false,
