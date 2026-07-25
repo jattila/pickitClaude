@@ -180,6 +180,19 @@ export async function setMemberSuspended(
   await call({ groupId, uid, suspended });
 }
 
+/**
+ * Owner-only, idempotent repair for member docs created before members carried
+ * an email. Returns how many were filled in.
+ */
+export async function backfillMemberEmails(groupId: string): Promise<number> {
+  const call = httpsCallable<{ groupId: string }, { updated: number }>(
+    functions,
+    'backfillMemberEmails'
+  );
+  const result = await call({ groupId });
+  return result.data.updated;
+}
+
 function toGroupList(snap: QueryDocumentSnapshot<DocumentData>) {
   const data = snap.data();
   return {

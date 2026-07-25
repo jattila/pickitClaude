@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGroupMembers } from '../../../../../src/hooks/useGroupMembers';
 import { useGroups } from '../../../../../src/hooks/useGroups';
-import { createInvite, setMemberSuspended } from '../../../../../src/services/groups';
+import {
+  backfillMemberEmails,
+  createInvite,
+  setMemberSuspended,
+} from '../../../../../src/services/groups';
 import { useNetworkStatus } from '../../../../../src/hooks/useNetworkStatus';
 import { useAuthStore } from '../../../../../src/store/authStore';
 import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
@@ -24,6 +28,20 @@ export default function GroupMembersScreen() {
   const [working, setWorking] = useState(false);
 
   const isOwner = !!currentUid && group?.ownerId === currentUid;
+
+  // Members who joined before member docs carried an email have none stored.
+  // The owner opening this screen is the natural moment to repair that, so it
+  // happens silently here instead of behind a one-off maintenance button.
+  // The ref keeps it to a single attempt per visit — members whose account
+  // genuinely has no email stay null, and would otherwise retrigger forever.
+  const backfillAttempted = useRef(false);
+  useEffect(() => {
+    if (backfillAttempted.current) return;
+    if (!isOwner || !isConnected || members.length === 0) return;
+    if (!members.some((member) => !member.email)) return;
+    backfillAttempted.current = true;
+    backfillMemberEmails(groupId).catch(() => undefined);
+  }, [isOwner, isConnected, members, groupId]);
 
   const applySuspension = async (member: GroupMember) => {
     setError(null);
