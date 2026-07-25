@@ -1,11 +1,15 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ScrollView } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import { useRepository } from '../data/useRepository';
 import { useListItems } from './useListItems';
+import { useListMeta } from './useListMeta';
+import { useUserSettings } from './useUserSettings';
+import { useAuthStore } from '../store/authStore';
 import { toItemId } from '../services/normalize';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PromptDialog } from '../components/PromptDialog';
+import { RecentPurchaseBanner } from '../components/RecentPurchaseBanner';
 import type { ShoppingItem } from '../data/types';
 
 /**
@@ -21,12 +25,16 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
   const repo = useRepository();
   const { activeItems, checkedItems, renameItem, checkItem, restoreItem, deleteItem } =
     useListItems(listId);
+  const list = useListMeta(listId);
+  const settings = useUserSettings();
+  const myUid = useAuthStore((state) => state.user?.uid);
 
   const [pendingRestoreConfirm, setPendingRestoreConfirm] = useState<ShoppingItem | null>(null);
   const [renamingItem, setRenamingItem] = useState<ShoppingItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ShoppingItem | null>(null);
   const [restoreRequest, setRestoreRequest] = useState<ShoppingItem | null>(null);
   const [scrollTargetId, setScrollTargetId] = useState<string | null>(null);
+  const [dismissedRecentIds, setDismissedRecentIds] = useState<Set<string>>(new Set());
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -116,6 +124,34 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
   // from suggesting products that are already here.
   const existingItemIds = [...activeItems, ...checkedItems].map((item) => item.id);
 
+  // "Someone else already bought this recently" only makes sense on a shared
+  // (group) list — personal/guest lists have no one else who could have.
+  const recentPurchases = useMemo(() => {
+    if (!list?.groupId || !settings.recentPurchaseWarningEnabled) return [];
+    const windowMs = settings.recentPurchaseWindowMinutes * 60_000;
+    const now = Date.now();
+    return checkedItems.filter(
+      (item) =>
+        item.checkedBy &&
+        item.checkedBy !== myUid &&
+        item.checkedAt &&
+        now - item.checkedAt <= windowMs &&
+        !dismissedRecentIds.has(item.id)
+    );
+  }, [list?.groupId, settings, checkedItems, myUid, dismissedRecentIds]);
+
+  const recentPurchaseBanners = (
+    <>
+      {recentPurchases.map((item) => (
+        <RecentPurchaseBanner
+          key={item.id}
+          item={item}
+          onDismiss={() => setDismissedRecentIds((prev) => new Set(prev).add(item.id))}
+        />
+      ))}
+    </>
+  );
+
   return {
     scrollViewRef,
     sections,
@@ -123,6 +159,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
     handleTargetLayout,
     handleAdd,
     existingItemIds,
+    recentPurchaseBanners,
     setRestoreRequest,
     setRenamingItem,
     setDeletingItem,

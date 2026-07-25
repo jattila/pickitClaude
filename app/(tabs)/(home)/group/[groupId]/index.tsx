@@ -31,6 +31,7 @@ export default function GroupListsScreen() {
     handleTargetLayout,
     handleAdd,
     existingItemIds,
+    recentPurchaseBanners,
     setRestoreRequest,
     setRenamingItem,
     setDeletingItem,
@@ -67,6 +68,8 @@ export default function GroupListsScreen() {
           ),
         }}
       />
+
+      {recentPurchaseBanners}
 
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
         <View style={styles.sectionHeaderRow}>

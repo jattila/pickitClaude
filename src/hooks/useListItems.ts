@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useRepository } from '../data/useRepository';
+import { useAuthStore } from '../store/authStore';
 import type { ShoppingItem } from '../data/types';
 
 export function useListItems(listId: string | null) {
   const repo = useRepository();
+  const user = useAuthStore((state) => state.user);
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,9 +40,12 @@ export function useListItems(listId: string | null) {
       if (!listId) throw new Error('Nincs kiválasztott lista.');
       return repo.renameItem(listId, itemId, newName);
     },
-    checkItem: (itemId: string, checkedByName: string | null = null) => {
+    // The checker's name comes from the signed-in user, not the caller —
+    // previously nothing passed it through and checked items always ended up
+    // with checkedByName: null.
+    checkItem: (itemId: string) => {
       if (!listId) throw new Error('Nincs kiválasztott lista.');
-      return repo.checkItem(listId, itemId, checkedByName);
+      return repo.checkItem(listId, itemId, user?.displayName || user?.email || null);
     },
     restoreItem: (itemId: string) => {
       if (!listId) throw new Error('Nincs kiválasztott lista.');

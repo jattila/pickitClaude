@@ -31,6 +31,7 @@ export default function ListsOverviewScreen() {
     handleTargetLayout,
     handleAdd,
     existingItemIds,
+    recentPurchaseBanners,
     setRestoreRequest,
     setRenamingItem,
     setDeletingItem,
@@ -57,6 +58,8 @@ export default function ListsOverviewScreen() {
       keyboardVerticalOffset={headerHeight}
     >
       <Stack.Screen options={{ title: 'PickIt', headerLeft: () => <HamburgerButton /> }} />
+
+      {recentPurchaseBanners}
 
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
         {user ? (

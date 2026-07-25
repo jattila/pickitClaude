@@ -13,6 +13,7 @@ export interface ShoppingItem {
   normalizedName: string;
   quantity: string | null;
   checked: boolean;
+  checkedBy: string | null; // uid of whoever checked it; always null locally (guests have no other members)
   checkedByName: string | null;
   checkedAt: number | null;
   createdAt: number;

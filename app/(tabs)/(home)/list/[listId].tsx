@@ -12,8 +12,20 @@ export default function ListDetailScreen() {
   const list = useListMeta(listId);
   const headerHeight = useHeaderHeight();
 
-  const { scrollViewRef, sections, scrollTargetId, handleTargetLayout, handleAdd, existingItemIds, setRestoreRequest, setRenamingItem, setDeletingItem, checkItem, dialogs } =
-    useItemsPanel(listId);
+  const {
+    scrollViewRef,
+    sections,
+    scrollTargetId,
+    handleTargetLayout,
+    handleAdd,
+    existingItemIds,
+    recentPurchaseBanners,
+    setRestoreRequest,
+    setRenamingItem,
+    setDeletingItem,
+    checkItem,
+    dialogs,
+  } = useItemsPanel(listId);
 
   return (
     <KeyboardAvoidingView
@@ -22,6 +34,8 @@ export default function ListDetailScreen() {
       keyboardVerticalOffset={headerHeight}
     >
       <Stack.Screen options={{ title: list?.name ?? 'Lista' }} />
+
+      {recentPurchaseBanners}
 
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
         {sections.length === 0 ? (
