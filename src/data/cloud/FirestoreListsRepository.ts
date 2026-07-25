@@ -3,7 +3,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  onSnapshot,
   orderBy,
   query,
   setDoc,
@@ -16,6 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from '@react-native-firebase/firestore';
 import { firestore, auth } from '../../services/firebase';
+import { watchDoc, watchQuery } from '../../services/firestoreWatch';
 import { normalizeName, toDisplayName, toItemId } from '../../services/normalize';
 import type { ListsRepository } from '../ListsRepository';
 import type { AddItemResult, CatalogEntry, ShoppingItem, ShoppingList } from '../types';
@@ -76,7 +76,7 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
       where('groupId', '==', null),
       orderBy('updatedAt', 'desc')
     );
-    return onSnapshot(q, (snap) => onChange(snap.docs.map(toShoppingList)));
+    return watchQuery(q, (snap) => snap.docs.map(toShoppingList), onChange, []);
   }
 
   /**
@@ -181,13 +181,12 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
   }
 
   subscribeListMeta(listId: string, onChange: (list: ShoppingList | null) => void): () => void {
-    return onSnapshot(doc(firestore, 'lists', listId), (snap) => {
-      if (!snap.exists()) {
-        onChange(null);
-        return;
-      }
-      onChange(toShoppingList(snap as QueryDocumentSnapshot<DocumentData>));
-    });
+    return watchDoc(
+      doc(firestore, 'lists', listId),
+      (snap) => (snap.exists() ? toShoppingList(snap as QueryDocumentSnapshot<DocumentData>) : null),
+      onChange,
+      null
+    );
   }
 
   async getItems(listId: string): Promise<ShoppingItem[]> {
@@ -198,7 +197,7 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
 
   subscribeItems(listId: string, onChange: (items: ShoppingItem[]) => void): () => void {
     const q = query(collection(firestore, 'lists', listId, 'items'), orderBy('checked', 'asc'), orderBy('createdAt', 'asc'));
-    return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => toShoppingItem(listId, d))));
+    return watchQuery(q, (snap) => snap.docs.map((d) => toShoppingItem(listId, d)), onChange, []);
   }
 
   async addItem(listId: string, rawName: string, quantity: string | null = null): Promise<AddItemResult> {

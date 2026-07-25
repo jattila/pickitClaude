@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { doc, onSnapshot, setDoc, type DocumentData } from '@react-native-firebase/firestore';
+import { doc, setDoc, type DocumentData } from '@react-native-firebase/firestore';
 import { firestore } from '../services/firebase';
+import { watchDoc } from '../services/firestoreWatch';
 import { useAuthStore } from '../store/authStore';
 import { DEFAULT_SETTINGS } from '../services/userProfile';
 
@@ -16,10 +17,15 @@ export function useUserSettings(): UserSettings {
       setSettings(DEFAULT_SETTINGS);
       return;
     }
-    return onSnapshot(doc(firestore, 'users', user.uid), (snap) => {
-      const data = snap.data() as DocumentData | undefined;
-      setSettings({ ...DEFAULT_SETTINGS, ...(data?.settings ?? {}) });
-    });
+    return watchDoc(
+      doc(firestore, 'users', user.uid),
+      (snap) => {
+        const data = snap.data() as DocumentData | undefined;
+        return { ...DEFAULT_SETTINGS, ...(data?.settings ?? {}) };
+      },
+      setSettings,
+      DEFAULT_SETTINGS
+    );
   }, [user]);
 
   return settings;

@@ -3,7 +3,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  onSnapshot,
   orderBy,
   query,
   setDoc,
@@ -16,6 +15,7 @@ import {
 import type { ShoppingList } from '../data/types';
 import { httpsCallable } from '@react-native-firebase/functions';
 import { firestore, functions, auth } from './firebase';
+import { watchQuery } from './firestoreWatch';
 import type { Group, GroupMember } from '../data/types';
 
 function requireUid(): string {
@@ -130,12 +130,12 @@ export function subscribeMyGroups(onChange: (groups: Group[]) => void): () => vo
     where('memberIds', 'array-contains', uid),
     orderBy('updatedAt', 'desc')
   );
-  return onSnapshot(q, (snap) => onChange(snap.docs.map(toGroup)));
+  return watchQuery(q, (snap) => snap.docs.map(toGroup), onChange, []);
 }
 
 export function subscribeGroupMembers(groupId: string, onChange: (members: GroupMember[]) => void): () => void {
   const q = query(collection(firestore, 'groups', groupId, 'members'), orderBy('joinedAt', 'asc'));
-  return onSnapshot(q, (snap) => onChange(snap.docs.map(toGroupMember)));
+  return watchQuery(q, (snap) => snap.docs.map(toGroupMember), onChange, []);
 }
 
 export async function createInvite(groupId: string): Promise<string> {
@@ -223,7 +223,7 @@ export function subscribeGroupLists(
     where('groupId', '==', groupId),
     orderBy('updatedAt', 'desc')
   );
-  return onSnapshot(q, (snap) => onChange(snap.docs.map(toGroupList)));
+  return watchQuery(q, (snap) => snap.docs.map(toGroupList), onChange, []);
 }
 
 /** Deterministic doc id for a group's hidden "loose items" list, so concurrent

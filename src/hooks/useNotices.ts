@@ -3,12 +3,12 @@ import {
   collection,
   deleteDoc,
   doc,
-  onSnapshot,
   orderBy,
   query,
   type DocumentData,
 } from '@react-native-firebase/firestore';
 import { firestore } from '../services/firebase';
+import { watchQuery } from '../services/firestoreWatch';
 import { useAuthStore } from '../store/authStore';
 
 export interface Notice {
@@ -40,23 +40,22 @@ export function useNotices() {
       collection(firestore, 'users', uid, 'notices'),
       orderBy('createdAt', 'asc')
     );
-    return onSnapshot(
+    return watchQuery(
       q,
       (snap) =>
-        setNotices(
-          snap.docs.map((d) => {
-            const data = d.data() as DocumentData;
-            return {
-              id: d.id,
-              type: data.type,
-              groupName: data.groupName ?? '',
-              ownerEmail: data.ownerEmail ?? null,
-              ownerName: data.ownerName ?? '',
-              createdAt: data.createdAt ?? 0,
-            };
-          })
-        ),
-      () => setNotices([])
+        snap.docs.map((d) => {
+          const data = d.data() as DocumentData;
+          return {
+            id: d.id,
+            type: data.type,
+            groupName: data.groupName ?? '',
+            ownerEmail: data.ownerEmail ?? null,
+            ownerName: data.ownerName ?? '',
+            createdAt: data.createdAt ?? 0,
+          } as Notice;
+        }),
+      setNotices,
+      []
     );
   }, [uid]);
 
