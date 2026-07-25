@@ -57,7 +57,21 @@ export default function ListsOverviewScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={headerHeight}
     >
-      <Stack.Screen options={{ title: 'PickIt', headerLeft: () => <HamburgerButton /> }} />
+      <Stack.Screen
+        options={{
+          title: 'PickIt',
+          headerLeft: () => <HamburgerButton />,
+          // Guests get a way in from the main screen; signed-in users already
+          // have their account under the hamburger and in Beállítások.
+          headerRight: user
+            ? undefined
+            : () => (
+                <Pressable onPress={() => router.push('/sign-in')} hitSlop={8}>
+                  <Text style={styles.signInLink}>Belépés</Text>
+                </Pressable>
+              ),
+        }}
+      />
 
       {recentPurchaseBanners}
 
@@ -220,6 +234,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 16,
+  },
+  signInLink: {
+    color: '#4A90D9',
+    fontSize: 15,
+    fontWeight: '600',
+    paddingHorizontal: 4,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
