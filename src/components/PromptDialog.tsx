@@ -8,6 +8,8 @@ interface PromptDialogProps {
   placeholder?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Lets an empty submission through, for fields whose value is optional. */
+  allowEmpty?: boolean;
   onConfirm: (value: string) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -19,6 +21,7 @@ export function PromptDialog({
   placeholder,
   confirmLabel = 'Mentés',
   cancelLabel = 'Mégse',
+  allowEmpty,
   onConfirm,
   onCancel,
 }: PromptDialogProps) {
@@ -35,7 +38,7 @@ export function PromptDialog({
 
   const submit = async () => {
     const trimmed = value.trim();
-    if (!trimmed) return;
+    if (!trimmed && !allowEmpty) return;
     setError(null);
     setSubmitting(true);
     try {

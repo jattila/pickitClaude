@@ -294,6 +294,13 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     // the new item id; the old catalog entry stays as product history.
   }
 
+  async setItemQuantity(listId: string, itemId: string, quantity: string | null): Promise<void> {
+    await updateDoc(doc(firestore, 'lists', listId, 'items', itemId), {
+      quantity,
+      updatedAt: Date.now(),
+    });
+  }
+
   async checkItem(listId: string, itemId: string, checkedByName: string | null): Promise<void> {
     const uid = requireUid();
     await updateDoc(doc(firestore, 'lists', listId, 'items', itemId), {

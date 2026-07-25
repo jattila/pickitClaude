@@ -5,13 +5,14 @@ import { lowercaseFirstChar, toDisplayName } from '../services/normalize';
 
 interface ItemNameInputProps {
   listId: string | null;
-  onSubmit: (name: string) => void;
+  onSubmit: (name: string, quantity: string | null) => void;
   /** Catalog ids already on the list — filtered out of the suggestions. */
   excludeIds?: string[];
 }
 
 export function ItemNameInput({ listId, onSubmit, excludeIds }: ItemNameInputProps) {
   const [value, setValue] = useState('');
+  const [quantity, setQuantity] = useState('');
   const allSuggestions = useCatalogSuggestions(listId, value);
   const suggestions = excludeIds?.length
     ? allSuggestions.filter((s) => !excludeIds.includes(s.id))
@@ -20,8 +21,9 @@ export function ItemNameInput({ listId, onSubmit, excludeIds }: ItemNameInputPro
   const submit = (name: string) => {
     const trimmed = toDisplayName(name);
     if (!trimmed) return;
-    onSubmit(trimmed);
+    onSubmit(trimmed, quantity.trim() || null);
     setValue('');
+    setQuantity('');
   };
 
   return (
@@ -45,6 +47,16 @@ export function ItemNameInput({ listId, onSubmit, excludeIds }: ItemNameInputPro
           onChangeText={(text) => setValue(lowercaseFirstChar(text))}
           placeholder="Új tétel neve…"
           style={styles.input}
+          autoCapitalize="none"
+          onSubmitEditing={() => submit(value)}
+          returnKeyType="done"
+        />
+        {/* Free text, not numeric: "2 kg" and "1 doboz" are as common as "2". */}
+        <TextInput
+          value={quantity}
+          onChangeText={setQuantity}
+          placeholder="mennyi"
+          style={styles.quantityInput}
           autoCapitalize="none"
           onSubmitEditing={() => submit(value)}
           returnKeyType="done"
@@ -73,6 +85,15 @@ const styles = StyleSheet.create({
     borderColor: '#DDD',
     borderRadius: 8,
     paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+  },
+  quantityInput: {
+    width: 74,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 15,
   },

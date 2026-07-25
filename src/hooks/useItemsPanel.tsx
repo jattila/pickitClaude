@@ -24,7 +24,7 @@ import type { ShoppingItem } from '../data/types';
  */
 export function useItemsPanel(listId: string | null, ensureListId?: () => Promise<string>) {
   const repo = useRepository();
-  const { activeItems, checkedItems, renameItem, checkItem, restoreItem, deleteItem } =
+  const { activeItems, checkedItems, renameItem, setItemQuantity, checkItem, restoreItem, deleteItem } =
     useListItems(listId);
   const list = useListMeta(listId);
   const settings = useUserSettings();
@@ -32,6 +32,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
 
   const [pendingRestoreConfirm, setPendingRestoreConfirm] = useState<ShoppingItem | null>(null);
   const [renamingItem, setRenamingItem] = useState<ShoppingItem | null>(null);
+  const [quantityItem, setQuantityItem] = useState<ShoppingItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ShoppingItem | null>(null);
   const [restoreRequest, setRestoreRequest] = useState<ShoppingItem | null>(null);
   const [scrollTargetId, setScrollTargetId] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleAdd = async (name: string) => {
+  const handleAdd = async (name: string, quantity: string | null = null) => {
     const newId = toItemId(name).id;
     setScrollTargetId(newId);
     try {
@@ -51,6 +52,9 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
       if (alreadyOnList) {
         setScrollTargetId(alreadyOnList.checked ? null : newId);
         if (alreadyOnList.checked) setPendingRestoreConfirm(alreadyOnList);
+        // Re-adding an item already on the list is how you'd naturally correct
+        // its amount, so honour a quantity typed alongside it.
+        else if (quantity) await setItemQuantity(alreadyOnList.id, quantity);
         return;
       }
 
@@ -59,7 +63,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
         setScrollTargetId(null);
         return;
       }
-      const { wasAlreadyChecked, item } = await repo.addItem(targetId, name);
+      const { wasAlreadyChecked, item } = await repo.addItem(targetId, name, quantity);
       if (wasAlreadyChecked) {
         setScrollTargetId(null);
         setPendingRestoreConfirm(item);
@@ -126,6 +130,21 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
         }}
       />
 
+      <PromptDialog
+        visible={!!quantityItem}
+        title="Mennyiség"
+        placeholder="pl. 2 kg, 1 doboz"
+        initialValue={quantityItem?.quantity ?? ''}
+        // allowEmpty: submitting nothing is how you clear a quantity you no
+        // longer want, which the dialog otherwise treats as "nothing to do".
+        allowEmpty
+        onCancel={() => setQuantityItem(null)}
+        onConfirm={async (value) => {
+          if (quantityItem) await setItemQuantity(quantityItem.id, value.trim() || null);
+          setQuantityItem(null);
+        }}
+      />
+
       <ConfirmDialog
         visible={!!deletingItem}
         title="Tétel törlése"
@@ -183,6 +202,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
     recentPurchaseBanners,
     setRestoreRequest,
     setRenamingItem,
+    setQuantityItem,
     setDeletingItem,
     checkItem,
     dialogs,

@@ -34,6 +34,7 @@ export default function GroupListsScreen() {
     recentPurchaseBanners,
     setRestoreRequest,
     setRenamingItem,
+    setQuantityItem,
     setDeletingItem,
     checkItem,
     dialogs: itemDialogs,
@@ -100,6 +101,7 @@ export default function GroupListsScreen() {
                   onCheck={() => checkItem(item.id)}
                   onRequestRestore={() => setRestoreRequest(item)}
                   onRenameRequest={() => setRenamingItem(item)}
+                  onQuantityRequest={() => setQuantityItem(item)}
                   onDeleteRequest={() => setDeletingItem(item)}
                 />
               </View>

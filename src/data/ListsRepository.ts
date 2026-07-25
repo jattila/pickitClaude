@@ -36,6 +36,12 @@ export interface ListsRepository {
    */
   addItem(listId: string, rawName: string, quantity?: string | null): Promise<AddItemResult>;
   renameItem(listId: string, itemId: string, newName: string): Promise<void>;
+  /**
+   * Free text ("2", "2 kg", "1 doboz") rather than a number — quantities are
+   * as often a unit or a package as a count. Never reaches the catalog: that
+   * is keyed on the product, and "2 kg" is not a different product from "kg".
+   */
+  setItemQuantity(listId: string, itemId: string, quantity: string | null): Promise<void>;
   checkItem(listId: string, itemId: string, checkedByName: string | null): Promise<void>;
   restoreItem(listId: string, itemId: string): Promise<void>;
   deleteItem(listId: string, itemId: string): Promise<void>;

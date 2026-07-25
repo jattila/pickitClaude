@@ -266,6 +266,17 @@ class LocalListsRepositoryImpl implements ListsRepository {
     await this.notifyItemsChanged(listId);
   }
 
+  async setItemQuantity(listId: string, itemId: string, quantity: string | null): Promise<void> {
+    const db = await getDb();
+    await db.runAsync('UPDATE items SET quantity = ?, updatedAt = ? WHERE listId = ? AND id = ?', [
+      quantity,
+      Date.now(),
+      listId,
+      itemId,
+    ]);
+    await this.notifyItemsChanged(listId);
+  }
+
   async checkItem(listId: string, itemId: string, checkedByName: string | null): Promise<void> {
     const db = await getDb();
     const now = Date.now();

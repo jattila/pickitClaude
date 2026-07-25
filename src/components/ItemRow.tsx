@@ -7,6 +7,7 @@ interface ItemRowProps {
   onCheck: () => void;
   onRequestRestore: () => void;
   onRenameRequest: () => void;
+  onQuantityRequest: () => void;
   onDeleteRequest: () => void;
 }
 
@@ -16,7 +17,14 @@ function formatCheckedAt(timestamp: number | null): string {
   return date.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function ItemRow({ item, onCheck, onRequestRestore, onRenameRequest, onDeleteRequest }: ItemRowProps) {
+export function ItemRow({
+  item,
+  onCheck,
+  onRequestRestore,
+  onRenameRequest,
+  onQuantityRequest,
+  onDeleteRequest,
+}: ItemRowProps) {
   const actions = item.checked
     ? [
         { key: 'restore', icon: '↩️', label: 'Visszateszem', onPress: onRequestRestore },
@@ -24,6 +32,7 @@ export function ItemRow({ item, onCheck, onRequestRestore, onRenameRequest, onDe
       ]
     : [
         { key: 'rename', icon: '✏️', label: 'Átnevezés', onPress: onRenameRequest },
+        { key: 'quantity', icon: '🔢', label: 'Mennyiség', onPress: onQuantityRequest },
         { key: 'delete', icon: '🗑️', label: 'Törlés', onPress: onDeleteRequest, destructive: true },
       ];
 

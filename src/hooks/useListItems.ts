@@ -40,6 +40,10 @@ export function useListItems(listId: string | null) {
       if (!listId) throw new Error('Nincs kiválasztott lista.');
       return repo.renameItem(listId, itemId, newName);
     },
+    setItemQuantity: (itemId: string, quantity: string | null) => {
+      if (!listId) throw new Error('Nincs kiválasztott lista.');
+      return repo.setItemQuantity(listId, itemId, quantity);
+    },
     // The checker's name comes from the signed-in user, not the caller —
     // previously nothing passed it through and checked items always ended up
     // with checkedByName: null.
