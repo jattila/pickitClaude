@@ -47,6 +47,13 @@ export interface Group {
 export interface GroupMember {
   uid: string;
   displayName: string;
+  /**
+   * Denormalized from users/{uid}. Members can't read each other's user docs
+   * (those hold settings and digest state), so the email has to live here to
+   * be visible in the member list. Null for members who joined before this
+   * field existed.
+   */
+  email: string | null;
   role: 'owner' | 'member';
   joinedAt: number;
 }

@@ -5,12 +5,15 @@ import { useGroupMembers } from '../../../../../src/hooks/useGroupMembers';
 import { useGroups } from '../../../../../src/hooks/useGroups';
 import { createInvite } from '../../../../../src/services/groups';
 import { useNetworkStatus } from '../../../../../src/hooks/useNetworkStatus';
+import { useAuthStore } from '../../../../../src/store/authStore';
 
 export default function GroupMembersScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const { isConnected } = useNetworkStatus();
   const { members, loading } = useGroupMembers(groupId);
   const { groups } = useGroups();
+  const currentUid = useAuthStore((state) => state.user?.uid);
+  const [revealedUid, setRevealedUid] = useState<string | null>(null);
   const group = groups.find((g) => g.id === groupId);
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +46,29 @@ export default function GroupMembersScreen() {
         <FlatList
           data={members}
           keyExtractor={(item) => item.uid}
-          renderItem={({ item }) => (
-            <View style={styles.memberRow}>
-              <Text style={styles.memberName}>{item.displayName || 'Névtelen'}</Text>
-              <Text style={styles.memberRole}>{item.role === 'owner' ? 'tulajdonos' : 'tag'}</Text>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            const revealed = revealedUid === item.uid;
+            return (
+              <Pressable
+                style={styles.memberRow}
+                onLongPress={() => setRevealedUid(revealed ? null : item.uid)}
+                delayLongPress={350}
+              >
+                <View style={styles.memberTextColumn}>
+                  <Text style={styles.memberName}>
+                    {item.displayName || 'Névtelen'}
+                    {item.uid === currentUid ? <Text style={styles.selfTag}> (én)</Text> : null}
+                  </Text>
+                  {revealed ? (
+                    <Text style={styles.memberEmail}>
+                      {item.email ?? 'Nincs elmentve e-mail cím ehhez a taghoz.'}
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={styles.memberRole}>{item.role === 'owner' ? 'tulajdonos' : 'tag'}</Text>
+              </Pressable>
+            );
+          }}
         />
       )}
 
@@ -90,8 +110,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E0E0E0',
   },
+  memberTextColumn: {
+    flex: 1,
+  },
   memberName: {
     fontSize: 16,
+  },
+  selfTag: {
+    color: '#888',
+    fontSize: 14,
+  },
+  memberEmail: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 2,
   },
   memberRole: {
     fontSize: 13,

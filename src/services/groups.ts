@@ -41,6 +41,7 @@ function toGroupMember(snap: QueryDocumentSnapshot<DocumentData>): GroupMember {
   return {
     uid: snap.id,
     displayName: data.displayName ?? '',
+    email: data.email ?? null,
     role: data.role,
     joinedAt: data.joinedAt,
   };
@@ -66,6 +67,7 @@ export async function createGroup(name: string): Promise<Group> {
   batch.set(doc(firestore, 'groups', groupRef.id, 'members', uid), {
     uid,
     displayName: ownerDisplayName,
+    email: auth.currentUser?.email ?? null,
     role: 'owner',
     joinedAt: now,
   });

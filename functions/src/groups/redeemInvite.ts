@@ -36,6 +36,9 @@ export const redeemInvite = onCall(async (request) => {
 
     const userSnap = await tx.get(userRef);
     const displayName = userSnap.exists ? userSnap.data()!.displayName ?? '' : '';
+    // Denormalized so other members can see it — they can't read this user's
+    // own users/{uid} doc, which also holds settings and digest state.
+    const email = userSnap.exists ? userSnap.data()!.email ?? null : null;
 
     const memberRef = groupRef.collection('members').doc(uid);
     tx.update(groupRef, {
@@ -45,6 +48,7 @@ export const redeemInvite = onCall(async (request) => {
     tx.set(memberRef, {
       uid,
       displayName,
+      email,
       role: 'member',
       joinedAt: Date.now(),
     });
