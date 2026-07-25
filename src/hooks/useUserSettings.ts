@@ -42,5 +42,5 @@ export function useEditableUserSettings() {
     [user]
   );
 
-  return { settings, updateSettings, canEdit: !!user };
+  return { settings, updateSettings };
 }
