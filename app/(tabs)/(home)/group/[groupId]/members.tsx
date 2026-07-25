@@ -103,7 +103,7 @@ export default function GroupMembersScreen() {
                   ) : null}
                 </View>
 
-                <Text style={styles.memberRole}>
+                <Text style={[styles.memberRole, item.suspended && styles.memberRoleSuspended]}>
                   {item.suspended ? 'felfüggesztve' : item.role === 'owner' ? 'tulajdonos' : 'tag'}
                 </Text>
 
@@ -190,8 +190,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   memberNameSuspended: {
-    color: '#AAA',
+    color: '#D9534F',
     textDecorationLine: 'line-through',
+  },
+  memberRoleSuspended: {
+    color: '#D9534F',
+    fontWeight: '700',
   },
   suspendButton: {
     marginLeft: 12,
