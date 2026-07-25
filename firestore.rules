@@ -50,6 +50,14 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // In-app notices (e.g. "you were suspended from a group"). Created only
+      // by setMemberSuspended via the Admin SDK; the user can read them and
+      // delete them once dismissed, but never forge one.
+      match /notices/{noticeId} {
+        allow read, delete: if isSignedIn() && request.auth.uid == uid;
+        allow create, update: if false;
+      }
+
       // Personal catalog: client reads for autocomplete and edits entries via
       // the catalog editor. Create has to be allowed too — the entry id is the
       // slug of the name, so renaming to a name that slugs differently is a

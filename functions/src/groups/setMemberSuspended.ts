@@ -67,38 +67,31 @@ export const setMemberSuspended = onCall(async (request) => {
 
     return {
       groupName: group.name ?? '',
-      memberEmail: member.email ?? null,
-      memberName: member.displayName ?? '',
       ownerEmail: ownerSnap.exists ? ownerSnap.data()!.email ?? null : null,
       ownerName: ownerSnap.exists ? ownerSnap.data()!.displayName ?? '' : '',
     };
   });
 
-  // Queued for the Firestore "Trigger Email" extension, which owns the actual
-  // delivery — that keeps SMTP credentials out of this codebase entirely.
-  // Failing to queue the mail must not undo a suspension that already applied,
-  // so this is deliberately outside the transaction and non-fatal.
-  if (result.memberEmail) {
-    const greeting = result.memberName ? `Kedves ${result.memberName}!` : 'Szia!';
-    const contact = result.ownerEmail
-      ? `Ha ezt tévedésnek gondolod, írj a csoport tulajdonosának: ${result.ownerEmail}`
-      : 'Ha ezt tévedésnek gondolod, keresd a csoport tulajdonosát.';
-
-    const subject = suspended
-      ? `Felfüggesztették a hozzáférésedet – ${result.groupName}`
-      : `Újra hozzáférsz ehhez a csoporthoz – ${result.groupName}`;
-
-    const body = suspended
-      ? `${greeting}\n\nA(z) "${result.groupName}" csoporthoz való hozzáférésedet felfüggesztették, ezért a csoport listái és tételei egyelőre nem érhetők el a PickIt appban.\n\n${contact}\n\nÜdvözlettel,\nPickIt`
-      : `${greeting}\n\nA(z) "${result.groupName}" csoporthoz való hozzáférésedet visszaállították, a listák és tételek ismét elérhetők a PickIt appban.\n\nÜdvözlettel,\nPickIt`;
-
-    await db
-      .collection('mail')
-      .add({ to: [result.memberEmail], message: { subject, text: body } })
-      .catch((error) => logger.error('Nem sikerült sorba állítani az e-mailt', { uid, error }));
-  } else {
-    logger.warn('Nincs elmentett e-mail cím a taghoz, értesítés kimarad', { groupId, uid });
-  }
+  // The notice goes under the member's *own* user document, not the group:
+  // a suspended member is out of memberIds, so every group path is closed to
+  // them and they could never read the owner's address from there. This is the
+  // one place they can still read.
+  //
+  // Written outside the transaction and non-fatal on purpose — failing to
+  // record a notice must not roll back a suspension that already took effect.
+  await db
+    .collection('users')
+    .doc(uid)
+    .collection('notices')
+    .add({
+      type: suspended ? 'group-suspended' : 'group-reinstated',
+      groupId,
+      groupName: result.groupName,
+      ownerEmail: result.ownerEmail,
+      ownerName: result.ownerName,
+      createdAt: Date.now(),
+    })
+    .catch((error) => logger.error('Nem sikerült létrehozni az értesítést', { uid, error }));
 
   return { suspended };
 });

@@ -3,6 +3,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { HamburgerMenu } from '../src/components/HamburgerMenu';
 import { OfflineBanner } from '../src/components/OfflineBanner';
+import { NoticeDialog } from '../src/components/NoticeDialog';
 import { usePushRegistration } from '../src/hooks/usePushRegistration';
 import '../src/store/authStore';
 
@@ -17,6 +18,7 @@ export default function RootLayout() {
         </Stack>
         <HamburgerMenu />
         <OfflineBanner />
+        <NoticeDialog />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

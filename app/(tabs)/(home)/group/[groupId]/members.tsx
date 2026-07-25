@@ -126,8 +126,8 @@ export default function GroupMembersScreen() {
         title={pendingSuspend?.suspended ? 'Tag visszaengedélyezése' : 'Tag felfüggesztése'}
         message={
           pendingSuspend?.suspended
-            ? `"${pendingSuspend?.displayName || 'A tag'}" újra hozzáfér a csoport listáihoz, és e-mailben értesítjük róla.`
-            : `"${pendingSuspend?.displayName || 'A tag'}" nem fogja látni a csoport listáit és tételeit, amíg vissza nem engedélyezed. E-mailben értesítjük, és megkapja a te e-mail címedet is, hogy jelezni tudjon.`
+            ? `"${pendingSuspend?.displayName || 'A tag'}" újra hozzáfér a csoport listáihoz, és az app következő megnyitásakor értesül róla.`
+            : `"${pendingSuspend?.displayName || 'A tag'}" nem fogja látni a csoport listáit és tételeit, amíg vissza nem engedélyezed. Az app következő megnyitásakor értesül róla, és megkapja a te e-mail címedet is, hogy jelezni tudjon.`
         }
         confirmLabel={pendingSuspend?.suspended ? 'Visszaengedélyezés' : 'Felfüggesztés'}
         destructive={!pendingSuspend?.suspended}
