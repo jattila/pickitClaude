@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/store/authStore';
 import { getInvitePreview, redeemInvite } from '../../src/services/groups';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
@@ -43,7 +43,6 @@ export default function JoinScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ title: 'Csatlakozás' }} />
         <Text style={styles.title}>Regisztráció szükséges</Text>
         <Text style={styles.text}>
           Csoporthoz csatlakozáshoz előbb regisztrálnod kell egy fiókot.
@@ -61,7 +60,6 @@ export default function JoinScreen() {
   if (notFound) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ title: 'Csatlakozás' }} />
         <Text style={styles.title}>Érvénytelen meghívó</Text>
         <Text style={styles.text}>Ez a meghívó kód nem található, lejárt, vagy vissza lett vonva.</Text>
       </View>
@@ -70,7 +68,6 @@ export default function JoinScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Csatlakozás' }} />
       {groupName ? (
         <>
           <Text style={styles.title}>Csatlakozol ehhez: "{groupName}"</Text>

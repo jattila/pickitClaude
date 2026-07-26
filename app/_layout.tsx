@@ -19,8 +19,24 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <SafeAreaProvider>
-          <Stack screenOptions={{ headerTitleAlign: 'center' }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/*
+            Headers are off by default here and turned on per screen. Declaring
+            only `(tabs)` as hidden wasn't enough: reaching a tab route from
+            outside — redeeming an invite replaces the join screen with a group
+            route — matched it under a different key, and the fallback header
+            rendered the route name, "(tabs)", as the title.
+
+            The tab screens bring their own headers anyway; only these
+            standalone ones need one, and they need it for the back button.
+          */}
+          <Stack screenOptions={{ headerTitleAlign: 'center', headerShown: false }}>
+            <Stack.Screen name="sign-in" options={{ headerShown: true, title: 'Bejelentkezés' }} />
+            <Stack.Screen name="sign-up" options={{ headerShown: true, title: 'Regisztráció' }} />
+            <Stack.Screen
+              name="forgot-password"
+              options={{ headerShown: true, title: 'Elfelejtett jelszó' }}
+            />
+            <Stack.Screen name="join/[code]" options={{ headerShown: true, title: 'Csatlakozás' }} />
           </Stack>
           <HamburgerMenu />
           <OfflineBanner />
