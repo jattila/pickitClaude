@@ -2,7 +2,6 @@ import { Fragment } from 'react';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
-import { useKeyboardInset } from '../../../../src/hooks/useKeyboardInset';
 import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../../src/utils/keyboardAvoiding';
 import { useListMeta } from '../../../../src/hooks/useListMeta';
 import { useItemsPanel } from '../../../../src/hooks/useItemsPanel';
@@ -13,7 +12,6 @@ export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
   const list = useListMeta(listId);
   const headerHeight = useHeaderHeight();
-  const { ref: keyboardInsetRef, inset: keyboardInset } = useKeyboardInset();
 
   const {
     scrollViewRef,
@@ -34,7 +32,7 @@ export default function ListDetailScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingBottom: keyboardInset }]}
+      style={styles.container}
       behavior={keyboardAvoidingBehavior}
       keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
     >
@@ -42,7 +40,7 @@ export default function ListDetailScreen() {
 
       {recentPurchaseBanners}
 
-      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
+      <ScrollView ref={scrollViewRef} style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
         {sections.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Még nincs tétel ezen a listán.</Text>
@@ -72,7 +70,7 @@ export default function ListDetailScreen() {
         )}
       </ScrollView>
 
-      <View ref={keyboardInsetRef} collapsable={false}>
+      <View>
         <ItemNameInput listId={listId} onSubmit={handleAdd} excludeIds={existingItemIds} />
       </View>
 
@@ -85,6 +83,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  // flex:1 so the scroll area absorbs the keyboard inset applied to the
+  // container; without it RN's default flexShrink of 0 keeps the ScrollView at
+  // full height and pushes the input row out of view instead of moving it up.
+  scrollArea: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,

@@ -2,7 +2,6 @@ import { Fragment, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
-import { useKeyboardInset } from '../../../../../src/hooks/useKeyboardInset';
 import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../../../src/utils/keyboardAvoiding';
 import { useGroupLists } from '../../../../../src/hooks/useGroupLists';
 import { useGroups } from '../../../../../src/hooks/useGroups';
@@ -21,7 +20,6 @@ export default function GroupListsScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const router = useRouter();
   const headerHeight = useHeaderHeight();
-  const { ref: keyboardInsetRef, inset: keyboardInset } = useKeyboardInset();
   const { lists: allLists, loading, createList } = useGroupLists(groupId);
   const { groups } = useGroups();
   const group = groups.find((g) => g.id === groupId);
@@ -54,7 +52,7 @@ export default function GroupListsScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingBottom: keyboardInset }]}
+      style={styles.container}
       behavior={keyboardAvoidingBehavior}
       keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
     >
@@ -76,7 +74,7 @@ export default function GroupListsScreen() {
 
       {recentPurchaseBanners}
 
-      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
+      <ScrollView ref={scrollViewRef} style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeaderInline}>Listák és tételek</Text>
           <Pressable onPress={() => setCreating(true)} hitSlop={8}>
@@ -115,7 +113,7 @@ export default function GroupListsScreen() {
         ))}
       </ScrollView>
 
-      <View ref={keyboardInsetRef} collapsable={false}>
+      <View>
         <ItemNameInput listId={defaultListId} onSubmit={handleAdd} excludeIds={existingItemIds} />
       </View>
 
@@ -163,6 +161,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  // flex:1 so the scroll area absorbs the keyboard inset applied to the
+  // container; without it RN's default flexShrink of 0 keeps the ScrollView at
+  // full height and pushes the input row out of view instead of moving it up.
+  scrollArea: {
+    flex: 1,
   },
   headerLinks: {
     flexDirection: 'row',
