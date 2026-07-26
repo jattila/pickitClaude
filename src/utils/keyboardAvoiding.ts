@@ -1,15 +1,14 @@
 import { Platform } from 'react-native';
 
 /**
- * Android already resizes the window when the keyboard opens — Expo's
- * softwareKeyboardLayoutMode defaults to "resize", i.e. adjustResize — so
- * KeyboardAvoidingView has to stay out of the way there. Giving it a behaviour
- * (and a header-height offset) on Android compensates a second time, which is
- * what pushed the input well above the keyboard instead of onto it.
+ * Both platforms need KeyboardAvoidingView, but only iOS needs the offset.
  *
- * iOS does no such thing, so it still needs both.
+ * On iOS the view sits below a header that KeyboardAvoidingView doesn't know
+ * about, so the header's height has to be added or the input lands under the
+ * keyboard. On Android the header is already accounted for, and adding it
+ * again lifted the input roughly a header's height too high.
  */
-export const keyboardAvoidingBehavior = Platform.OS === 'ios' ? ('padding' as const) : undefined;
+export const keyboardAvoidingBehavior = Platform.OS === 'ios' ? ('padding' as const) : ('height' as const);
 
 export function keyboardVerticalOffset(headerHeight: number): number {
   return Platform.OS === 'ios' ? headerHeight : 0;
