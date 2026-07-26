@@ -1,11 +1,10 @@
 import { Platform } from 'react-native';
 
 /**
- * iOS only. With react-native-keyboard-controller in place, Android genuinely
- * resizes the window for the keyboard again — the header stays put and the
- * content area shrinks on its own — so padding on top of that compensates a
- * second time and pushes the input clean out of view. iOS resizes nothing and
- * still needs it.
+ * iOS only. On Android every KeyboardAvoidingView — React Native's and
+ * keyboard-controller's — lifts by the keyboard height the system reports,
+ * which is ~58pt short of what it actually occupies, leaving the field behind
+ * it. `useKeyboardInset` measures against the keyboard's real top edge instead.
  */
 export const keyboardAvoidingBehavior = Platform.OS === 'ios' ? ('padding' as const) : undefined;
 

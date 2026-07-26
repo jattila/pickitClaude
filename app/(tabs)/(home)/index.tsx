@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Stack, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useKeyboardInset } from '../../../src/hooks/useKeyboardInset';
 import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../src/utils/keyboardAvoiding';
 import { useLists } from '../../../src/hooks/useLists';
 import { useGroups } from '../../../src/hooks/useGroups';
@@ -21,6 +22,7 @@ import type { Group, ShoppingList } from '../../../src/data/types';
 export default function ListsOverviewScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
+  const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
   const user = useAuthStore((state) => state.user);
   const { listId: defaultListId, ensureListId } = useDefaultList();
   const { lists: allLists, loading, createList, renameList, deleteList } = useLists();
@@ -57,7 +59,7 @@ export default function ListsOverviewScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { paddingBottom: keyboardInset }]}
       behavior={keyboardAvoidingBehavior}
       keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
     >
@@ -145,7 +147,7 @@ export default function ListsOverviewScreen() {
         ))}
       </ScrollView>
 
-      <View>
+      <View ref={keyboardRef} collapsable={false}>
         <ItemNameInput listId={defaultListId} onSubmit={handleAdd} excludeIds={existingItemIds} />
       </View>
 
