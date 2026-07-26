@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SwipeableActionRow } from './SwipeableActionRow';
 import type { ShoppingItem } from '../data/types';
 
@@ -48,14 +48,29 @@ export function ItemRow({
       ];
 
   return (
-    <SwipeableActionRow actions={actions} onPress={item.checked ? onRequestRestore : onCheck}>
+    <SwipeableActionRow
+      actions={actions}
+      onPress={item.checked ? onRequestRestore : onCheck}
+      trailingOverlay={
+        <Pressable
+          onPress={onToggleFavorite}
+          hitSlop={10}
+          style={styles.favoriteButton}
+          accessibilityRole="button"
+          accessibilityLabel={item.favorite ? 'Kedvenc törlése' : 'Kedvencnek jelölés'}
+        >
+          <Text style={[styles.favoriteIcon, item.favorite && styles.favoriteIconOn]}>
+            {item.favorite ? '★' : '☆'}
+          </Text>
+        </Pressable>
+      }
+    >
       <View style={styles.row}>
         <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
           {item.checked ? <Text style={styles.checkmark}>✓</Text> : null}
         </View>
         <View style={styles.textColumn}>
           <Text style={[styles.name, item.checked && styles.nameChecked]}>
-            {item.favorite ? <Text style={styles.favoriteStar}>★ </Text> : null}
             {item.name}
             {item.quantity ? <Text style={styles.quantity}> · {item.quantity}</Text> : null}
           </Text>
@@ -76,7 +91,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 20,
+    paddingLeft: 20,
+    paddingRight: 52,
     backgroundColor: 'white',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E0E0E0',
@@ -110,7 +126,15 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     color: '#999',
   },
-  favoriteStar: {
+  favoriteButton: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+  },
+  favoriteIcon: {
+    fontSize: 22,
+    color: '#CCC',
+  },
+  favoriteIconOn: {
     color: '#E8A33D',
   },
   quantity: {

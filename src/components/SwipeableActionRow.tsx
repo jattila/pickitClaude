@@ -20,6 +20,12 @@ interface SwipeableActionRowProps {
   children: ReactNode;
   actions: RowAction[];
   onPress?: () => void;
+  /**
+   * Rendered pinned to the right edge, *outside* the gesture detector, so its
+   * own touches don't have to compete with the row's tap/long-press gestures.
+   * The action panel slides in over it.
+   */
+  trailingOverlay?: ReactNode;
 }
 
 const BUTTON_WIDTH = 72;
@@ -34,7 +40,12 @@ function clamp(value: number, min: number, max: number): number {
  * the row stays put and the buttons slide in from the right, overlaying the
  * right edge. Both interaction paths draw from the same `actions` list.
  */
-export function SwipeableActionRow({ children, actions, onPress }: SwipeableActionRowProps) {
+export function SwipeableActionRow({
+  children,
+  actions,
+  onPress,
+  trailingOverlay,
+}: SwipeableActionRowProps) {
   const panelWidth = actions.length * BUTTON_WIDTH;
   const open = useSharedValue(0); // 0 = closed, panelWidth = fully revealed
   const start = useSharedValue(0);
@@ -88,6 +99,8 @@ export function SwipeableActionRow({ children, actions, onPress }: SwipeableActi
         <View>{children}</View>
       </GestureDetector>
 
+      {trailingOverlay ? <View style={styles.trailingOverlay}>{trailingOverlay}</View> : null}
+
       <Animated.View style={[styles.actions, { width: panelWidth }, actionsStyle]}>
         {actions.map((action) => (
           <Pressable
@@ -107,6 +120,13 @@ export function SwipeableActionRow({ children, actions, onPress }: SwipeableActi
 const styles = StyleSheet.create({
   wrapper: {
     overflow: 'hidden',
+  },
+  trailingOverlay: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   actions: {
     position: 'absolute',
