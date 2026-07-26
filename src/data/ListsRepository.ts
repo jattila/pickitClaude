@@ -48,22 +48,10 @@ export interface ListsRepository {
   deleteItem(listId: string, itemId: string): Promise<void>;
 
   /**
-   * `groupId` names the catalog scope outright. Deriving it from the list is
-   * unreliable: a group's hidden default list has no document until its first
-   * item, and without one the lookup silently falls back to the personal
-   * catalog. `listId` is only a fallback for callers that don't know the scope.
-   */
-  getCatalogSuggestions(
-    listId: string | null,
-    prefix: string,
-    groupId?: string | null
-  ): Promise<CatalogEntry[]>;
-
-  /**
-   * Full catalog editor support. `groupId` selects the scope directly (null =
-   * the caller's personal catalog) — unlike `getCatalogSuggestions`, there's no
-   * list to resolve it from since the editor is opened from Settings/a group
-   * screen, not from a specific list.
+   * The whole catalog for a scope (null = the caller's personal one). Backs
+   * both the catalog editor and autocomplete: matching happens client-side,
+   * since Firestore can only do prefix ranges and suggestions need to match
+   * mid-word too.
    */
   getCatalogEntries(groupId: string | null): Promise<CatalogEntry[]>;
   renameCatalogEntry(groupId: string | null, catalogId: string, newName: string): Promise<void>;

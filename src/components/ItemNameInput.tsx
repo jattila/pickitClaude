@@ -15,7 +15,7 @@ interface ItemNameInputProps {
 export function ItemNameInput({ listId, onSubmit, excludeIds, groupId }: ItemNameInputProps) {
   const [value, setValue] = useState('');
   const [quantity, setQuantity] = useState('');
-  const allSuggestions = useCatalogSuggestions(listId, value, groupId);
+  const allSuggestions = useCatalogSuggestions(value, groupId);
   const suggestions = excludeIds?.length
     ? allSuggestions.filter((s) => !excludeIds.includes(s.id))
     : allSuggestions;

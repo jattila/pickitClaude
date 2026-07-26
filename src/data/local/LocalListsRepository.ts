@@ -365,23 +365,6 @@ class LocalListsRepositoryImpl implements ListsRepository {
     await db.runAsync('DELETE FROM catalog WHERE id = ?', [catalogId]);
   }
 
-  async getCatalogSuggestions(_listId: string | null, prefix: string, _groupId?: string | null): Promise<CatalogEntry[]> {
-    const db = await getDb();
-    const normalizedPrefix = prefix.trim().toLowerCase();
-    if (!normalizedPrefix) return [];
-    const rows = await db.getAllAsync(
-      'SELECT * FROM catalog WHERE normalizedName LIKE ? ORDER BY usageCount DESC, lastUsedAt DESC LIMIT 10',
-      [`${normalizedPrefix}%`]
-    );
-    return rows.map((row: any) => ({
-      id: row.id,
-      name: row.name,
-      normalizedName: row.normalizedName,
-      usageCount: row.usageCount,
-      lastUsedAt: row.lastUsedAt,
-      createdAt: row.createdAt,
-    }));
-  }
 }
 
 export const LocalListsRepository: ListsRepository = new LocalListsRepositoryImpl();

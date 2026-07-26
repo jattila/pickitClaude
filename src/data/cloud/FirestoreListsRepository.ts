@@ -9,7 +9,6 @@ import {
   updateDoc,
   deleteDoc,
   where,
-  limit,
   writeBatch,
   type DocumentData,
   type QueryDocumentSnapshot,
@@ -401,30 +400,6 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     await deleteDoc(doc(this.catalogCollectionForScope(groupId), catalogId));
   }
 
-  async getCatalogSuggestions(listId: string | null, prefix: string, groupId?: string | null): Promise<CatalogEntry[]> {
-    const normalizedPrefix = prefix.trim().toLowerCase();
-    if (!normalizedPrefix) return [];
-    const q = query(
-      groupId ? this.catalogCollectionForScope(groupId) : await this.catalogCollectionForList(listId),
-      where('normalizedName', '>=', normalizedPrefix),
-      where('normalizedName', '<=', normalizedPrefix + ''),
-      orderBy('normalizedName'),
-      limit(10)
-    );
-    const snap = await getDocs(q);
-    const results = snap.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        name: data.name,
-        normalizedName: data.normalizedName,
-        usageCount: data.usageCount,
-        lastUsedAt: data.lastUsedAt,
-        createdAt: data.createdAt,
-      } as CatalogEntry;
-    });
-    return results.sort((a, b) => b.usageCount - a.usageCount);
-  }
 }
 
 export const FirestoreListsRepository: ListsRepository = new FirestoreListsRepositoryImpl();
