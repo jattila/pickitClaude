@@ -74,6 +74,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
+    // Keeps the row clear of the keyboard's top edge. Android's pan aligns the
+    // focused field's bottom to the keyboard, so whether this shows through
+    // depends on it not re-panning after the layout shifts.
+    paddingBottom: 28,
     gap: 8,
     backgroundColor: 'white',
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -85,10 +89,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDD',
     borderRadius: 8,
     paddingHorizontal: 12,
-    // Taller than it needs to be on purpose: Android's pan mode lifts the
-    // window until the focused field's *bottom edge* clears the keyboard, with
-    // no margin of its own, so the field's own height is what buys the gap.
-    paddingVertical: 14,
+    paddingVertical: 10,
     fontSize: 15,
   },
   quantityInput: {
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDD',
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 14,
+    paddingVertical: 10,
     fontSize: 15,
   },
   addButton: {
