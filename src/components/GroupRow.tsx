@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SwipeableActionRow } from './SwipeableActionRow';
 import type { Group } from '../data/types';
 
@@ -8,9 +8,17 @@ interface GroupRowProps {
   onPress: () => void;
   onRenameRequest: () => void;
   onDeleteRequest: () => void;
+  onLeaveRequest: () => void;
 }
 
-export function GroupRow({ group, isOwner, onPress, onRenameRequest, onDeleteRequest }: GroupRowProps) {
+export function GroupRow({
+  group,
+  isOwner,
+  onPress,
+  onRenameRequest,
+  onDeleteRequest,
+  onLeaveRequest,
+}: GroupRowProps) {
   const content = (
     <View style={styles.row}>
       <Text style={styles.name}>{group.name}</Text>
@@ -18,18 +26,18 @@ export function GroupRow({ group, isOwner, onPress, onRenameRequest, onDeleteReq
     </View>
   );
 
-  if (!isOwner) {
-    return <Pressable onPress={onPress}>{content}</Pressable>;
-  }
-
-  return (
-    <SwipeableActionRow
-      onPress={onPress}
-      actions={[
+  // The owner manages the group; everyone else can only walk away from it.
+  // Owners have no "leave" — it would strand the group with nobody able to
+  // manage or delete it; deleting is their equivalent.
+  const actions = isOwner
+    ? [
         { key: 'rename', icon: '✏️', label: 'Átnevezés', onPress: onRenameRequest },
         { key: 'delete', icon: '🗑️', label: 'Törlés', onPress: onDeleteRequest, destructive: true },
-      ]}
-    >
+      ]
+    : [{ key: 'leave', icon: '🚪', label: 'Kilépés', onPress: onLeaveRequest, destructive: true }];
+
+  return (
+    <SwipeableActionRow onPress={onPress} actions={actions}>
       {content}
     </SwipeableActionRow>
   );

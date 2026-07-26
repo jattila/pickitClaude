@@ -180,6 +180,12 @@ export async function setMemberSuspended(
   await call({ groupId, uid, suspended });
 }
 
+/** Removes the caller from a group. Owners can't leave — they delete the group instead. */
+export async function leaveGroup(groupId: string): Promise<void> {
+  const call = httpsCallable<{ groupId: string }, { left: boolean }>(functions, 'leaveGroup');
+  await call({ groupId });
+}
+
 /**
  * Owner-only, idempotent repair for member docs created before members carried
  * an email. Returns how many were filled in.

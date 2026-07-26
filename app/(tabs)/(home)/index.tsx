@@ -7,6 +7,7 @@ import { useKeyboardInset } from '../../../src/hooks/useKeyboardInset';
 import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../src/utils/keyboardAvoiding';
 import { useLists } from '../../../src/hooks/useLists';
 import { useGroups } from '../../../src/hooks/useGroups';
+import { leaveGroup } from '../../../src/services/groups';
 import { useDefaultList } from '../../../src/hooks/useQuickAdd';
 import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -56,6 +57,7 @@ export default function ListsOverviewScreen() {
   const [renamingGroup, setRenamingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
   const [enteringCode, setEnteringCode] = useState(false);
+  const [leavingGroup, setLeavingGroup] = useState<Group | null>(null);
 
   return (
     <KeyboardAvoidingView
@@ -101,6 +103,7 @@ export default function ListsOverviewScreen() {
                   onPress={() => router.push(`/group/${group.id}`)}
                   onRenameRequest={() => setRenamingGroup(group)}
                   onDeleteRequest={() => setDeletingGroup(group)}
+                  onLeaveRequest={() => setLeavingGroup(group)}
                 />
               ))
             )}
@@ -218,6 +221,19 @@ export default function ListsOverviewScreen() {
         onConfirm={async (name) => {
           if (renamingGroup) await renameGroup(renamingGroup.id, name);
           setRenamingGroup(null);
+        }}
+      />
+
+      <ConfirmDialog
+        visible={!!leavingGroup}
+        title="Kilépés a csoportból"
+        message={`Biztosan kilépsz a(z) "${leavingGroup?.name}" csoportból? A csoport listái és tételei ezután nem lesznek elérhetők. Új meghívóval bármikor visszatérhetsz.`}
+        confirmLabel="Kilépés"
+        destructive
+        onCancel={() => setLeavingGroup(null)}
+        onConfirm={() => {
+          if (leavingGroup) leaveGroup(leavingGroup.id).catch(() => undefined);
+          setLeavingGroup(null);
         }}
       />
 
