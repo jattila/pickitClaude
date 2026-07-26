@@ -22,7 +22,7 @@ export default function GroupListsScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const router = useRouter();
   const headerHeight = useHeaderHeight();
-  const { ref: keyboardRef, inset: keyboardInset, onLayout: keyboardOnLayout } = useKeyboardInset();
+  const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
   const { lists: allLists, loading, createList } = useGroupLists(groupId);
   const { groups } = useGroups();
   const group = groups.find((g) => g.id === groupId);
@@ -116,7 +116,7 @@ export default function GroupListsScreen() {
         ))}
       </ScrollView>
 
-      <View ref={keyboardRef} collapsable={false} onLayout={keyboardOnLayout}>
+      <View ref={keyboardRef} collapsable={false}>
         <ItemNameInput listId={defaultListId} onSubmit={handleAdd} excludeIds={existingItemIds} />
       </View>
 
