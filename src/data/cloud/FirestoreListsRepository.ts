@@ -340,8 +340,9 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
   }
 
   /** Resolves whether a list feeds the group catalog or the owner's personal one. */
-  private async catalogCollectionForList(listId: string) {
+  private async catalogCollectionForList(listId: string | null) {
     const uid = requireUid();
+    if (!listId) return collection(firestore, 'users', uid, 'catalog');
     const listSnap = await getDoc(doc(firestore, 'lists', listId));
     const groupId = listSnap.exists() ? ((listSnap.data() as DocumentData).groupId ?? null) : null;
     return groupId
@@ -400,7 +401,7 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     await deleteDoc(doc(this.catalogCollectionForScope(groupId), catalogId));
   }
 
-  async getCatalogSuggestions(listId: string, prefix: string): Promise<CatalogEntry[]> {
+  async getCatalogSuggestions(listId: string | null, prefix: string): Promise<CatalogEntry[]> {
     const normalizedPrefix = prefix.trim().toLowerCase();
     if (!normalizedPrefix) return [];
     const q = query(

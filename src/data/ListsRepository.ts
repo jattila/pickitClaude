@@ -47,7 +47,8 @@ export interface ListsRepository {
   restoreItem(listId: string, itemId: string): Promise<void>;
   deleteItem(listId: string, itemId: string): Promise<void>;
 
-  getCatalogSuggestions(listId: string, prefix: string): Promise<CatalogEntry[]>;
+  /** `listId` may be null before the hidden default list exists; suggestions then come from the personal catalog. */
+  getCatalogSuggestions(listId: string | null, prefix: string): Promise<CatalogEntry[]>;
 
   /**
    * Full catalog editor support. `groupId` selects the scope directly (null =

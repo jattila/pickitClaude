@@ -9,14 +9,16 @@ export function useCatalogSuggestions(listId: string | null, prefix: string) {
   const [suggestions, setSuggestions] = useState<CatalogEntry[]>([]);
 
   useEffect(() => {
-    if (!listId || !prefix.trim()) {
+    if (!prefix.trim()) {
       setSuggestions([]);
       return;
     }
     let cancelled = false;
-    const targetListId = listId;
     const timer = setTimeout(() => {
-      repo.getCatalogSuggestions(targetListId, prefix).then((results) => {
+      // A null listId means the hidden default list doesn't exist yet — the
+      // catalog behind it still does, so suggest from it rather than going
+      // silent until the user's first item creates the list.
+      repo.getCatalogSuggestions(listId, prefix).then((results) => {
         if (!cancelled) setSuggestions(results);
       });
     }, DEBOUNCE_MS);
