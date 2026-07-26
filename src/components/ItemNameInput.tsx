@@ -74,10 +74,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    // Keeps the row clear of the keyboard's top edge. Android's pan aligns the
-    // focused field's bottom to the keyboard, so whether this shows through
-    // depends on it not re-panning after the layout shifts.
-    paddingBottom: 28,
     gap: 8,
     backgroundColor: 'white',
     borderTopWidth: StyleSheet.hairlineWidth,
