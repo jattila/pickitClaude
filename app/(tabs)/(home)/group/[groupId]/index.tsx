@@ -62,15 +62,13 @@ export default function GroupListsScreen() {
       <Stack.Screen
         options={{
           title: group?.name ?? 'Csoport',
+          // No catalog link: the bottom tab and the hamburger both open this
+          // group's catalog while you're inside it, so a third route would only
+          // crowd the header.
           headerRight: () => (
-            <View style={styles.headerLinks}>
-              <Pressable onPress={() => router.push(`/group/${groupId}/catalog`)} hitSlop={8}>
-                <Text style={styles.membersLink}>Katalógus</Text>
-              </Pressable>
-              <Pressable onPress={() => router.push(`/group/${groupId}/members`)} hitSlop={8}>
-                <Text style={styles.membersLink}>Tagok</Text>
-              </Pressable>
-            </View>
+            <Pressable onPress={() => router.push(`/group/${groupId}/members`)} hitSlop={8}>
+              <Text style={styles.membersLink}>Tagok</Text>
+            </Pressable>
           ),
         }}
       />
@@ -175,10 +173,6 @@ const styles = StyleSheet.create({
   // full height and pushes the input row out of view instead of moving it up.
   scrollArea: {
     flex: 1,
-  },
-  headerLinks: {
-    flexDirection: 'row',
-    gap: 12,
   },
   membersLink: {
     color: '#4A90D9',
