@@ -1,15 +1,13 @@
 import { Platform } from 'react-native';
 
 /**
- * iOS only. KeyboardAvoidingView computes the gap from its own frame, which on
- * Android stops above the bottom tab bar, so it always came up short there —
- * `useKeyboardInset` measures the real distance instead. Leaving this enabled
- * on Android would stack a second, wrong compensation on top of that one.
- *
- * The offset covers the header, which sits outside the frame the view knows
- * about on iOS.
+ * Both platforms now use padding, via react-native-keyboard-controller's
+ * KeyboardAvoidingView rather than React Native's. The built-in one derives the
+ * keyboard's extent from values Android under-reports — vendor toolbars aren't
+ * included — which is why every purely-JS attempt landed the input behind
+ * Samsung's toolbar strip. The library reads the real IME insets instead.
  */
-export const keyboardAvoidingBehavior = Platform.OS === 'ios' ? ('padding' as const) : undefined;
+export const keyboardAvoidingBehavior = 'padding' as const;
 
 export function keyboardVerticalOffset(headerHeight: number): number {
   return Platform.OS === 'ios' ? headerHeight : 0;

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { keyboardAvoidingBehavior } from '../src/utils/keyboardAvoiding';
 import { sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';

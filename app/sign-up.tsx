@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { keyboardAvoidingBehavior } from '../src/utils/keyboardAvoiding';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, updateProfile } from '@react-native-firebase/auth';

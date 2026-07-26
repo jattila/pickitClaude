@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../../src/utils/keyboardAvoiding';

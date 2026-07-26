@@ -24,8 +24,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "//keyboard": "pan, not resize: under SDK 54 edge-to-edge Android no longer resizes the window for the IME, and the reported keyboard height excludes vendor toolbars (Samsung). Panning lets the OS reveal the focused input using geometry it actually knows.",
-      "softwareKeyboardLayoutMode": "pan"
+      "//keyboard": "resize is what react-native-keyboard-controller expects; it reads the real IME insets itself. pan was the stopgap before it, and moved the header along with everything else.",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
