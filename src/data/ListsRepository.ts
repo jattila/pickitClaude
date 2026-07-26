@@ -47,8 +47,17 @@ export interface ListsRepository {
   restoreItem(listId: string, itemId: string): Promise<void>;
   deleteItem(listId: string, itemId: string): Promise<void>;
 
-  /** `listId` may be null before the hidden default list exists; suggestions then come from the personal catalog. */
-  getCatalogSuggestions(listId: string | null, prefix: string): Promise<CatalogEntry[]>;
+  /**
+   * `groupId` names the catalog scope outright. Deriving it from the list is
+   * unreliable: a group's hidden default list has no document until its first
+   * item, and without one the lookup silently falls back to the personal
+   * catalog. `listId` is only a fallback for callers that don't know the scope.
+   */
+  getCatalogSuggestions(
+    listId: string | null,
+    prefix: string,
+    groupId?: string | null
+  ): Promise<CatalogEntry[]>;
 
   /**
    * Full catalog editor support. `groupId` selects the scope directly (null =

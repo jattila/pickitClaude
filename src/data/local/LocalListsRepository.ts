@@ -365,7 +365,7 @@ class LocalListsRepositoryImpl implements ListsRepository {
     await db.runAsync('DELETE FROM catalog WHERE id = ?', [catalogId]);
   }
 
-  async getCatalogSuggestions(_listId: string | null, prefix: string): Promise<CatalogEntry[]> {
+  async getCatalogSuggestions(_listId: string | null, prefix: string, _groupId?: string | null): Promise<CatalogEntry[]> {
     const db = await getDb();
     const normalizedPrefix = prefix.trim().toLowerCase();
     if (!normalizedPrefix) return [];

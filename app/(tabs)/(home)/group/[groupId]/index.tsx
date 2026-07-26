@@ -117,7 +117,12 @@ export default function GroupListsScreen() {
       </ScrollView>
 
       <View ref={keyboardRef} collapsable={false}>
-        <ItemNameInput listId={defaultListId} onSubmit={handleAdd} excludeIds={existingItemIds} />
+        <ItemNameInput
+          listId={defaultListId}
+          groupId={groupId}
+          onSubmit={handleAdd}
+          excludeIds={existingItemIds}
+        />
       </View>
 
       {itemDialogs}

@@ -74,7 +74,12 @@ export default function ListDetailScreen() {
       </ScrollView>
 
       <View ref={keyboardRef} collapsable={false}>
-        <ItemNameInput listId={listId} onSubmit={handleAdd} excludeIds={existingItemIds} />
+        <ItemNameInput
+          listId={listId}
+          groupId={list?.groupId}
+          onSubmit={handleAdd}
+          excludeIds={existingItemIds}
+        />
       </View>
 
       {dialogs}

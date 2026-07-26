@@ -4,7 +4,11 @@ import type { CatalogEntry } from '../data/types';
 
 const DEBOUNCE_MS = 200;
 
-export function useCatalogSuggestions(listId: string | null, prefix: string) {
+export function useCatalogSuggestions(
+  listId: string | null,
+  prefix: string,
+  groupId?: string | null
+) {
   const repo = useRepository();
   const [suggestions, setSuggestions] = useState<CatalogEntry[]>([]);
 
@@ -18,7 +22,7 @@ export function useCatalogSuggestions(listId: string | null, prefix: string) {
       // A null listId means the hidden default list doesn't exist yet — the
       // catalog behind it still does, so suggest from it rather than going
       // silent until the user's first item creates the list.
-      repo.getCatalogSuggestions(listId, prefix).then((results) => {
+      repo.getCatalogSuggestions(listId, prefix, groupId).then((results) => {
         if (!cancelled) setSuggestions(results);
       });
     }, DEBOUNCE_MS);
@@ -26,7 +30,7 @@ export function useCatalogSuggestions(listId: string | null, prefix: string) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [repo, listId, prefix]);
+  }, [repo, listId, prefix, groupId]);
 
   return suggestions;
 }

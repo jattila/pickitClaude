@@ -401,11 +401,11 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     await deleteDoc(doc(this.catalogCollectionForScope(groupId), catalogId));
   }
 
-  async getCatalogSuggestions(listId: string | null, prefix: string): Promise<CatalogEntry[]> {
+  async getCatalogSuggestions(listId: string | null, prefix: string, groupId?: string | null): Promise<CatalogEntry[]> {
     const normalizedPrefix = prefix.trim().toLowerCase();
     if (!normalizedPrefix) return [];
     const q = query(
-      await this.catalogCollectionForList(listId),
+      groupId ? this.catalogCollectionForScope(groupId) : await this.catalogCollectionForList(listId),
       where('normalizedName', '>=', normalizedPrefix),
       where('normalizedName', '<=', normalizedPrefix + ''),
       orderBy('normalizedName'),
