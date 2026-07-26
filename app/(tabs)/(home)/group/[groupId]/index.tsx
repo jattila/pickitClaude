@@ -1,7 +1,8 @@
 import { Fragment, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../../../src/utils/keyboardAvoiding';
 import { useGroupLists } from '../../../../../src/hooks/useGroupLists';
 import { useGroups } from '../../../../../src/hooks/useGroups';
 import { useGroupDefaultList } from '../../../../../src/hooks/useGroupDefaultListId';
@@ -52,8 +53,8 @@ export default function GroupListsScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={headerHeight}
+      behavior={keyboardAvoidingBehavior}
+      keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
     >
       <Stack.Screen
         options={{

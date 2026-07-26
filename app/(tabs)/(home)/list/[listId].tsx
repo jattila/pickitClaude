@@ -1,7 +1,8 @@
 import { Fragment } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../../src/utils/keyboardAvoiding';
 import { useListMeta } from '../../../../src/hooks/useListMeta';
 import { useItemsPanel } from '../../../../src/hooks/useItemsPanel';
 import { ItemRow } from '../../../../src/components/ItemRow';
@@ -32,8 +33,8 @@ export default function ListDetailScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={headerHeight}
+      behavior={keyboardAvoidingBehavior}
+      keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
     >
       <Stack.Screen options={{ title: list?.name ?? 'Lista' }} />
 

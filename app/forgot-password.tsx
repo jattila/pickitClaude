@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { keyboardAvoidingBehavior } from '../src/utils/keyboardAvoiding';
 import { sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
@@ -21,7 +22,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={styles.container} behavior={keyboardAvoidingBehavior}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Elfelejtett jelszó</Text>
 

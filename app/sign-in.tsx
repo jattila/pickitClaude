@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { keyboardAvoidingBehavior } from '../src/utils/keyboardAvoiding';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
@@ -28,7 +29,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={styles.container} behavior={keyboardAvoidingBehavior}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Bejelentkezés</Text>
 
