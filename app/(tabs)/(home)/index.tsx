@@ -22,7 +22,7 @@ import type { Group, ShoppingList } from '../../../src/data/types';
 export default function ListsOverviewScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
-  const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
+  const { ref: keyboardRef, inset: keyboardInset, onLayout: keyboardOnLayout } = useKeyboardInset();
   const user = useAuthStore((state) => state.user);
   const { listId: defaultListId, ensureListId } = useDefaultList();
   const { lists: allLists, loading, createList, renameList, deleteList } = useLists();
@@ -147,7 +147,7 @@ export default function ListsOverviewScreen() {
         ))}
       </ScrollView>
 
-      <View ref={keyboardRef} collapsable={false}>
+      <View ref={keyboardRef} collapsable={false} onLayout={keyboardOnLayout}>
         <ItemNameInput listId={defaultListId} onSubmit={handleAdd} excludeIds={existingItemIds} />
       </View>
 

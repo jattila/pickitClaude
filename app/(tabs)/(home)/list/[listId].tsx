@@ -14,7 +14,7 @@ export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
   const list = useListMeta(listId);
   const headerHeight = useHeaderHeight();
-  const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
+  const { ref: keyboardRef, inset: keyboardInset, onLayout: keyboardOnLayout } = useKeyboardInset();
 
   const {
     scrollViewRef,
@@ -73,7 +73,7 @@ export default function ListDetailScreen() {
         )}
       </ScrollView>
 
-      <View ref={keyboardRef} collapsable={false}>
+      <View ref={keyboardRef} collapsable={false} onLayout={keyboardOnLayout}>
         <ItemNameInput listId={listId} onSubmit={handleAdd} excludeIds={existingItemIds} />
       </View>
 

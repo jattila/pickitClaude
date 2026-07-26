@@ -1,45 +1,75 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, View } from 'react-native';
 
-/** Small breathing room so the field doesn't sit flush against the keyboard. */
+/** Breathing room between the field and the keyboard. */
 const GAP = 8;
+/** Stop adjusting once we're within a point of the target. */
+const TOLERANCE = 1;
+/** Guards against a layout that never settles. */
+const MAX_CORRECTIONS = 5;
 
 /**
- * Bottom padding needed to keep `ref` clear of the Android keyboard.
+ * Bottom padding that keeps `ref` clear of the Android keyboard.
  *
- * Everything else available under-reports the keyboard. Measured on a Galaxy
- * S24+: the window never resizes (832 before and after), the reported keyboard
- * height is 310 while it actually occupies 358 on screen, and
- * KeyboardAvoidingView — React Native's and keyboard-controller's alike — lifts
- * by the short figure, leaving the field ~58pt behind the keyboard.
+ * Nothing the system reports can be trusted to compute this in one shot. On a
+ * Galaxy S24+ the window never resizes, the reported keyboard height is ~48pt
+ * short of what it occupies, and the vendor toolbar above the keys isn't
+ * counted at all — every KeyboardAvoidingView that trusts those figures leaves
+ * the field behind the keyboard.
  *
- * `endCoordinates.screenY` is the one value that matches what's drawn, so the
- * padding comes from the measured distance between the row and that edge.
+ * So this doesn't predict the value, it converges on it: apply a correction,
+ * let the layout settle, measure where the row actually landed, correct again.
+ * `onLayout` drives each round; a couple of passes are enough, and the counter
+ * stops it from looping if a layout never settles.
  *
- * iOS returns 0: KeyboardAvoidingView handles it correctly there.
+ * iOS returns 0 — KeyboardAvoidingView is correct there.
  */
 export function useKeyboardInset() {
   const ref = useRef<View>(null);
   const [inset, setInset] = useState(0);
+  // Mirrors `inset` for the measure callback, which must read the value applied
+  // right now rather than whatever was captured when it was created.
+  const appliedInset = useRef(0);
+  const keyboardTop = useRef<number | null>(null);
+  const corrections = useRef(0);
+
+  const correct = useCallback(() => {
+    if (Platform.OS !== 'android' || keyboardTop.current === null) return;
+    if (corrections.current >= MAX_CORRECTIONS) return;
+
+    ref.current?.measureInWindow((_x, y, _width, height) => {
+      const target = keyboardTop.current;
+      if (target === null) return;
+      const overshoot = y + height - (target - GAP);
+      if (Math.abs(overshoot) <= TOLERANCE) return;
+
+      corrections.current += 1;
+      const next = Math.max(0, appliedInset.current + overshoot);
+      appliedInset.current = next;
+      setInset(next);
+    });
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
     const show = Keyboard.addListener('keyboardDidShow', (event) => {
-      const keyboardTop = event.endCoordinates.screenY;
-      // Measured while the inset is still 0, so it can't feed back into itself.
-      ref.current?.measureInWindow((_x, y, _width, height) => {
-        const overlap = y + height - keyboardTop;
-        setInset(overlap > 0 ? overlap + GAP : 0);
-      });
+      keyboardTop.current = event.endCoordinates.screenY;
+      corrections.current = 0;
+      correct();
     });
-    const hide = Keyboard.addListener('keyboardDidHide', () => setInset(0));
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardTop.current = null;
+      corrections.current = 0;
+      appliedInset.current = 0;
+      setInset(0);
+    });
 
     return () => {
       show.remove();
       hide.remove();
     };
-  }, []);
+  }, [correct]);
 
-  return { ref, inset };
+  return { ref, inset, onLayout: correct };
 }
