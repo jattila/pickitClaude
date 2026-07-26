@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useKeyboardInset } from '../../../../src/hooks/useKeyboardInset';
 import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../../src/utils/keyboardAvoiding';
 import { useListMeta } from '../../../../src/hooks/useListMeta';
 import { useItemsPanel } from '../../../../src/hooks/useItemsPanel';
@@ -12,6 +13,7 @@ export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
   const list = useListMeta(listId);
   const headerHeight = useHeaderHeight();
+  const { ref: keyboardInsetRef, inset: keyboardInset } = useKeyboardInset();
 
   const {
     scrollViewRef,
@@ -32,7 +34,7 @@ export default function ListDetailScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { paddingBottom: keyboardInset }]}
       behavior={keyboardAvoidingBehavior}
       keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
     >
@@ -70,7 +72,9 @@ export default function ListDetailScreen() {
         )}
       </ScrollView>
 
-      <ItemNameInput listId={listId} onSubmit={handleAdd} excludeIds={existingItemIds} />
+      <View ref={keyboardInsetRef} collapsable={false}>
+        <ItemNameInput listId={listId} onSubmit={handleAdd} excludeIds={existingItemIds} />
+      </View>
 
       {dialogs}
     </KeyboardAvoidingView>

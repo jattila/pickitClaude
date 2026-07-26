@@ -1,14 +1,15 @@
 import { Platform } from 'react-native';
 
 /**
- * Both platforms need KeyboardAvoidingView, but only iOS needs the offset.
+ * iOS only. KeyboardAvoidingView computes the gap from its own frame, which on
+ * Android stops above the bottom tab bar, so it always came up short there —
+ * `useKeyboardInset` measures the real distance instead. Leaving this enabled
+ * on Android would stack a second, wrong compensation on top of that one.
  *
- * On iOS the view sits below a header that KeyboardAvoidingView doesn't know
- * about, so the header's height has to be added or the input lands under the
- * keyboard. On Android the header is already accounted for, and adding it
- * again lifted the input roughly a header's height too high.
+ * The offset covers the header, which sits outside the frame the view knows
+ * about on iOS.
  */
-export const keyboardAvoidingBehavior = Platform.OS === 'ios' ? ('padding' as const) : ('height' as const);
+export const keyboardAvoidingBehavior = Platform.OS === 'ios' ? ('padding' as const) : undefined;
 
 export function keyboardVerticalOffset(headerHeight: number): number {
   return Platform.OS === 'ios' ? headerHeight : 0;

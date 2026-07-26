@@ -7,12 +7,14 @@ import { NoticeDialog } from '../src/components/NoticeDialog';
 import { usePushRegistration } from '../src/hooks/usePushRegistration';
 import { useReturnHomeOnSignOut } from '../src/hooks/useReturnHomeOnSignOut';
 import { usePresence } from '../src/hooks/usePresence';
+import { useKeyboardDiagnostics } from '../src/hooks/useKeyboardDiagnostics';
 import '../src/store/authStore';
 
 export default function RootLayout() {
   usePushRegistration();
   useReturnHomeOnSignOut();
   usePresence();
+  useKeyboardDiagnostics();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
