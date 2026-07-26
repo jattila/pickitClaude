@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 import { BackButtonWithMenu } from '../../../src/components/BackButtonWithMenu';
-import { useOfflineHeaderInset } from '../../../src/hooks/useOfflineHeaderInset';
 
 /**
  * Nested Stack behind the "Áttekintés" tab, so drilling into a list or a
@@ -11,14 +10,11 @@ import { useOfflineHeaderInset } from '../../../src/hooks/useOfflineHeaderInset'
  * just the hamburger, since it has no "back" to show.
  */
 export default function HomeStackLayout() {
-  const offlineHeaderInset = useOfflineHeaderInset();
-
   return (
     <Stack
       screenOptions={{
         headerTitleAlign: 'center',
         headerLeft: (props) => <BackButtonWithMenu {...props} />,
-        ...offlineHeaderInset,
       }}
     />
   );

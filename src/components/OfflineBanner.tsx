@@ -8,17 +8,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  * need a live connection (auth, invites) gate their own actions separately
  * via useNetworkStatus.
  *
- * Laid out in the normal flow above the navigator rather than floating over
- * it: as an overlay it sat on top of the screen header and hid the title and
- * the back button. Sitting in the flow, it takes the status bar area for
- * itself and pushes the app down — see RootLayout, which zeroes the top inset
- * for the navigator while this is showing so the header doesn't inset twice.
+ * Sits in the flow at the *bottom* of the app. As a top overlay it covered the
+ * screen header — title and back button both — and moving it to the top of the
+ * flow instead left a blank strip, because the native header reserves the
+ * status bar area itself and no React-side inset override reaches it. There is
+ * no header at the bottom to fight with.
  */
 export function OfflineBanner() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.banner, { paddingTop: insets.top + 6 }]} pointerEvents="none">
+    <View style={[styles.banner, { paddingBottom: insets.bottom + 6 }]} pointerEvents="none">
       <Text style={styles.text}>
         Nincs internetkapcsolat — a változtatások szinkronizálódnak, ha újra online leszel.
       </Text>
@@ -29,7 +29,7 @@ export function OfflineBanner() {
 const styles = StyleSheet.create({
   banner: {
     backgroundColor: '#D9534F',
-    paddingBottom: 6,
+    paddingTop: 6,
     paddingHorizontal: 14,
   },
   text: {

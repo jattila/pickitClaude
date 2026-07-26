@@ -10,21 +10,18 @@ import { usePushRegistration } from "../src/hooks/usePushRegistration";
 import { useReturnHomeOnSignOut } from "../src/hooks/useReturnHomeOnSignOut";
 import { usePresence } from "../src/hooks/usePresence";
 import { useNetworkStatus } from "../src/hooks/useNetworkStatus";
-import { useOfflineHeaderInset } from "../src/hooks/useOfflineHeaderInset";
 import "../src/store/authStore";
 
 /**
- * Lives inside SafeAreaProvider so the banner can read the insets. While the
- * banner is up it occupies the status bar area itself, so headers must not
- * reserve it again — see useOfflineHeaderInset.
+ * Lives inside SafeAreaProvider so the banner can read the insets. The banner
+ * renders after the navigator, pinning it to the bottom of the app where it
+ * has no header to collide with.
  */
 function AppNavigator() {
   const { isConnected } = useNetworkStatus();
-  const offlineHeaderInset = useOfflineHeaderInset();
 
   return (
     <View style={{ flex: 1 }}>
-      {isConnected ? null : <OfflineBanner />}
       {/*
           Headers are off by default here and turned on per screen. Declaring
           only `(tabs)` as hidden wasn't enough: reaching a tab route from
@@ -39,7 +36,6 @@ function AppNavigator() {
         screenOptions={{
           headerTitleAlign: "center",
           headerShown: false,
-          ...offlineHeaderInset,
         }}
       >
         <Stack.Screen
@@ -59,6 +55,7 @@ function AppNavigator() {
           options={{ headerShown: true, title: "Csatlakozás" }}
         />
       </Stack>
+      {isConnected ? null : <OfflineBanner />}
     </View>
   );
 }
