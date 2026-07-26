@@ -2,9 +2,11 @@ import { Tabs, usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { HamburgerButton } from '../../src/components/HamburgerButton';
 import { resolveCatalogPath } from '../../src/utils/catalogPath';
+import { useOfflineHeaderInset } from '../../src/hooks/useOfflineHeaderInset';
 
 export default function TabsLayout() {
   const pathname = usePathname();
+  const offlineHeaderInset = useOfflineHeaderInset();
   const router = useRouter();
 
   return (
@@ -12,6 +14,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerTitleAlign: 'center',
         headerLeft: () => <HamburgerButton />,
+        ...offlineHeaderInset,
         tabBarActiveTintColor: '#4A90D9',
       }}
     >
