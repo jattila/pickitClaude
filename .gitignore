@@ -49,3 +49,7 @@ functions/node_modules
 # Firebase
 firebase-debug.log
 firebase-debug.*.log
+
+# Session transcript export — a local record of the prompts behind this
+# codebase, regenerable from the Claude Code log. Not part of the app.
+pickit-full-prompts.md
