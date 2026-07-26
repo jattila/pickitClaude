@@ -1,13 +1,13 @@
 import { Platform } from 'react-native';
 
 /**
- * Both platforms now use padding, via react-native-keyboard-controller's
- * KeyboardAvoidingView rather than React Native's. The built-in one derives the
- * keyboard's extent from values Android under-reports — vendor toolbars aren't
- * included — which is why every purely-JS attempt landed the input behind
- * Samsung's toolbar strip. The library reads the real IME insets instead.
+ * iOS only. With react-native-keyboard-controller in place, Android genuinely
+ * resizes the window for the keyboard again — the header stays put and the
+ * content area shrinks on its own — so padding on top of that compensates a
+ * second time and pushes the input clean out of view. iOS resizes nothing and
+ * still needs it.
  */
-export const keyboardAvoidingBehavior = 'padding' as const;
+export const keyboardAvoidingBehavior = Platform.OS === 'ios' ? ('padding' as const) : undefined;
 
 export function keyboardVerticalOffset(headerHeight: number): number {
   return Platform.OS === 'ios' ? headerHeight : 0;
