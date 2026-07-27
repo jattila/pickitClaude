@@ -4,8 +4,10 @@ import { useRouter } from 'expo-router';
 import { signOutFully } from '../../src/services/session';
 import { useAuthStore } from '../../src/store/authStore';
 import { PromptDialog } from '../../src/components/PromptDialog';
+import { ConfirmDialog } from '../../src/components/ConfirmDialog';
 import { ChoiceRow, ToggleRow } from '../../src/components/SettingRows';
 import { useEditableUserSettings } from '../../src/hooks/useUserSettings';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 
 const WINDOW_OPTIONS = [
   { value: 15, label: '15 perc' },
@@ -25,7 +27,9 @@ export default function SettingsScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const { settings, updateSettings } = useEditableUserSettings();
+  const { isConnected } = useNetworkStatus();
   const [enteringCode, setEnteringCode] = useState(false);
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -34,7 +38,21 @@ export default function SettingsScreen() {
       {user ? (
         <View style={styles.card}>
           <Text style={styles.email}>{user.email}</Text>
-          <Pressable style={styles.button} onPress={() => signOutFully()}>
+          {/* Signing out offline would strand the user: the local Firestore
+              cache is dropped with the session, any writes still queued would
+              go with it, and signing back in needs the network they don't
+              have. */}
+          {!isConnected ? (
+            <Text style={styles.hint}>
+              Nincs internetkapcsolat — kijelentkezni csak online lehet, különben a még nem
+              szinkronizált változtatásaid elvesznének, és visszalépni sem tudnál.
+            </Text>
+          ) : null}
+          <Pressable
+            style={[styles.button, !isConnected && styles.buttonDisabled]}
+            onPress={() => setConfirmingSignOut(true)}
+            disabled={!isConnected}
+          >
             <Text style={styles.buttonLabel}>Kijelentkezés</Text>
           </Pressable>
         </View>
@@ -56,7 +74,16 @@ export default function SettingsScreen() {
         <>
           <Text style={styles.sectionHeader}>Csoportok</Text>
           <View style={styles.card}>
-            <Pressable style={styles.button} onPress={() => setEnteringCode(true)}>
+            {!isConnected ? (
+              <Text style={styles.hint}>
+                Nincs internetkapcsolat — a csatlakozáshoz kapcsolat kell.
+              </Text>
+            ) : null}
+            <Pressable
+              style={[styles.button, !isConnected && styles.buttonDisabled]}
+              onPress={() => setEnteringCode(true)}
+              disabled={!isConnected}
+            >
               <Text style={styles.buttonLabel}>Csatlakozás meghívó kóddal</Text>
             </Pressable>
           </View>
@@ -103,6 +130,19 @@ export default function SettingsScreen() {
           </View>
         </>
       ) : null}
+
+      <ConfirmDialog
+        visible={confirmingSignOut}
+        title="Kijelentkezés"
+        message="Biztosan kijelentkezel? A listáid és csoportjaid a fiókodban maradnak, de amíg vissza nem lépsz, nem éred el őket ezen a készüléken."
+        confirmLabel="Kijelentkezés"
+        destructive
+        onCancel={() => setConfirmingSignOut(false)}
+        onConfirm={() => {
+          setConfirmingSignOut(false);
+          signOutFully();
+        }}
+      />
 
       <PromptDialog
         visible={enteringCode}
@@ -158,11 +198,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
   },
+  hint: {
+    color: '#D9534F',
+    fontSize: 13,
+  },
   button: {
     backgroundColor: '#4A90D9',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.4,
   },
   buttonLabel: {
     color: 'white',

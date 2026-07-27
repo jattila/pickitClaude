@@ -34,9 +34,10 @@ export function ItemRow({
     onPress: onToggleFavorite,
   };
 
+  // No "restore" action here: tapping a checked row already asks for it, so
+  // the menu entry would be a second way to the same dialog.
   const actions = item.checked
     ? [
-        { key: 'restore', icon: '↩️', label: 'Visszateszem', onPress: onRequestRestore },
         favoriteAction,
         { key: 'delete', icon: '🗑️', label: 'Törlés', onPress: onDeleteRequest, destructive: true },
       ]

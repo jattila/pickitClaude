@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { signOutFully } from '../services/session';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { useGroups } from '../hooks/useGroups';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { resolveCatalogPath } from '../utils/catalogPath';
 
 const PANEL_WIDTH = Math.min(300, Dimensions.get('window').width * 0.8);
@@ -25,6 +27,8 @@ export function HamburgerMenu() {
   const menuOpen = useUiStore((state) => state.menuOpen);
   const closeMenu = useUiStore((state) => state.closeMenu);
   const { groups } = useGroups();
+  const { isConnected } = useNetworkStatus();
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
 
   const primaryLine = user ? user.displayName || user.email || 'Fiók' : 'Vendég';
   const secondaryLine = user
@@ -123,14 +127,22 @@ export function HamburgerMenu() {
           <View style={styles.divider} />
 
           {user ? (
-            <MenuItem
-              icon="log-out-outline"
-              label="Kijelentkezés"
-              onPress={() => {
-                closeMenu();
-                signOutFully();
-              }}
-            />
+            <>
+              <MenuItem
+                icon="log-out-outline"
+                label="Kijelentkezés"
+                // Offline the session is all that keeps the local Firestore
+                // cache — and any writes still waiting to sync — reachable,
+                // and signing back in needs a connection anyway.
+                disabled={!isConnected}
+                onPress={() => setConfirmingSignOut(true)}
+              />
+              {!isConnected ? (
+                <Text style={styles.hint}>
+                  Nincs internetkapcsolat — kijelentkezni csak online lehet.
+                </Text>
+              ) : null}
+            </>
           ) : (
             <>
               <MenuItem icon="person-add-outline" label="Regisztráció" onPress={() => go('/sign-up')} />
@@ -139,6 +151,23 @@ export function HamburgerMenu() {
           )}
         </ScrollView>
       </Animated.View>
+
+      {/* The menu deliberately stays open behind the dialog: cancelling should
+          put the user back where they were, and the panel is what makes this
+          whole overlay interactive. */}
+      <ConfirmDialog
+        visible={confirmingSignOut}
+        title="Kijelentkezés"
+        message="Biztosan kijelentkezel? A listáid és csoportjaid a fiókodban maradnak, de amíg vissza nem lépsz, nem éred el őket ezen a készüléken."
+        confirmLabel="Kijelentkezés"
+        destructive
+        onCancel={() => setConfirmingSignOut(false)}
+        onConfirm={() => {
+          setConfirmingSignOut(false);
+          closeMenu();
+          signOutFully();
+        }}
+      />
     </View>
   );
 }
@@ -148,14 +177,20 @@ function MenuItem({
   label,
   onPress,
   active,
+  disabled,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   active?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <Pressable style={[styles.item, active && styles.itemActive]} onPress={onPress}>
+    <Pressable
+      style={[styles.item, active && styles.itemActive, disabled && styles.itemDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+    >
       <Ionicons name={icon} size={20} color={active ? '#2D6FB0' : '#4A4A4A'} style={styles.itemIcon} />
       <Text style={[styles.itemLabel, active && styles.itemLabelActive]}>{label}</Text>
     </Pressable>
@@ -182,6 +217,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 12,
     paddingBottom: 24,
+  },
+  itemDisabled: {
+    opacity: 0.4,
+  },
+  hint: {
+    color: '#D9534F',
+    fontSize: 12,
+    paddingHorizontal: 12,
+    marginTop: -4,
+    marginBottom: 8,
   },
   header: {
     flexDirection: 'row',

@@ -66,8 +66,12 @@ export default function GroupListsScreen() {
           // group's catalog while you're inside it, so a third route would only
           // crowd the header.
           headerRight: () => (
-            <Pressable onPress={() => router.push(`/group/${groupId}/members`)} hitSlop={8}>
-              <Text style={styles.membersLink}>Tagok</Text>
+            <Pressable
+              style={styles.shareButton}
+              onPress={() => router.push(`/group/${groupId}/members`)}
+              hitSlop={8}
+            >
+              <Text style={styles.shareLabel}>Megosztás</Text>
             </Pressable>
           ),
         }}
@@ -174,10 +178,18 @@ const styles = StyleSheet.create({
   scrollArea: {
     flex: 1,
   },
-  membersLink: {
-    color: '#4A90D9',
-    fontSize: 15,
-    paddingHorizontal: 4,
+  // Matches the "Belépés" header button on the overview screen, so the two
+  // header actions in the app read as the same kind of control.
+  shareButton: {
+    backgroundColor: '#4A90D9',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  shareLabel: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   scrollContent: {
     paddingBottom: 16,

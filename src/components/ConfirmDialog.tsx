@@ -7,6 +7,8 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
+  /** For dialogs that only report something: there is nothing to cancel. */
+  hideCancel?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,6 +20,7 @@ export function ConfirmDialog({
   confirmLabel = 'OK',
   cancelLabel = 'Mégse',
   destructive,
+  hideCancel,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -28,9 +31,11 @@ export function ConfirmDialog({
           <Text style={styles.title}>{title}</Text>
           {message ? <Text style={styles.message}>{message}</Text> : null}
           <View style={styles.buttonRow}>
-            <Pressable style={styles.button} onPress={onCancel}>
-              <Text style={styles.buttonLabel}>{cancelLabel}</Text>
-            </Pressable>
+            {hideCancel ? null : (
+              <Pressable style={styles.button} onPress={onCancel}>
+                <Text style={styles.buttonLabel}>{cancelLabel}</Text>
+              </Pressable>
+            )}
             <Pressable style={styles.button} onPress={onConfirm}>
               <Text style={[styles.buttonLabel, styles.buttonLabelPrimary, destructive && styles.buttonLabelDestructive]}>
                 {confirmLabel}

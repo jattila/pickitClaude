@@ -10,6 +10,7 @@ import { useGroups } from '../../../src/hooks/useGroups';
 import { leaveGroup } from '../../../src/services/groups';
 import { useDefaultList } from '../../../src/hooks/useQuickAdd';
 import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
+import { useNetworkStatus } from '../../../src/hooks/useNetworkStatus';
 import { useAuthStore } from '../../../src/store/authStore';
 import { ListRow } from '../../../src/components/ListRow';
 import { GroupRow } from '../../../src/components/GroupRow';
@@ -24,6 +25,7 @@ export default function ListsOverviewScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
   const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
+  const { isConnected } = useNetworkStatus();
   const user = useAuthStore((state) => state.user);
   const { listId: defaultListId, ensureListId } = useDefaultList();
   const { lists: allLists, loading, createList, renameList, deleteList } = useLists();
@@ -58,6 +60,7 @@ export default function ListsOverviewScreen() {
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
   const [enteringCode, setEnteringCode] = useState(false);
   const [leavingGroup, setLeavingGroup] = useState<Group | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   return (
     <KeyboardAvoidingView
@@ -107,8 +110,19 @@ export default function ListsOverviewScreen() {
                 />
               ))
             )}
-            <Pressable style={styles.joinRow} onPress={() => setEnteringCode(true)}>
-              <Text style={styles.joinLabel}>Csatlakozás egy csoporthoz</Text>
+            <Pressable
+              style={styles.joinRow}
+              onPress={() => setEnteringCode(true)}
+              disabled={!isConnected}
+            >
+              <Text style={[styles.joinLabel, !isConnected && styles.joinLabelDisabled]}>
+                Csatlakozás egy csoporthoz
+              </Text>
+              {!isConnected ? (
+                <Text style={styles.joinHint}>
+                  Nincs internetkapcsolat — a csatlakozáshoz kapcsolat kell.
+                </Text>
+              ) : null}
             </Pressable>
           </>
         ) : null}
@@ -224,17 +238,38 @@ export default function ListsOverviewScreen() {
         }}
       />
 
+      {/* Leaving runs through a Cloud Function, so offline it cannot even be
+          queued — the dialog says so instead of pretending to work. */}
       <ConfirmDialog
         visible={!!leavingGroup}
-        title="Kilépés a csoportból"
-        message={`Biztosan kilépsz a(z) "${leavingGroup?.name}" csoportból? A csoport listái és tételei ezután nem lesznek elérhetők. Új meghívóval bármikor visszatérhetsz.`}
-        confirmLabel="Kilépés"
-        destructive
+        title={isConnected ? 'Kilépés a csoportból' : 'Nincs internetkapcsolat'}
+        message={
+          isConnected
+            ? `Biztosan kilépsz a(z) "${leavingGroup?.name}" csoportból? A csoport listái és tételei ezután nem lesznek elérhetők. Új meghívóval bármikor visszatérhetsz.`
+            : 'A csoportból kilépni csak online lehet. Próbáld újra, ha van kapcsolatod.'
+        }
+        confirmLabel={isConnected ? 'Kilépés' : 'Értem'}
+        hideCancel={!isConnected}
+        destructive={isConnected}
         onCancel={() => setLeavingGroup(null)}
         onConfirm={() => {
-          if (leavingGroup) leaveGroup(leavingGroup.id).catch(() => undefined);
+          const group = leavingGroup;
           setLeavingGroup(null);
+          if (!group || !isConnected) return;
+          leaveGroup(group.id).catch((e: any) =>
+            setLeaveError(e?.message ?? 'Nem sikerült kilépni a csoportból.')
+          );
         }}
+      />
+
+      <ConfirmDialog
+        visible={!!leaveError}
+        title="Nem sikerült kilépni"
+        message={leaveError ?? ''}
+        confirmLabel="Értem"
+        hideCancel
+        onCancel={() => setLeaveError(null)}
+        onConfirm={() => setLeaveError(null)}
       />
 
       <ConfirmDialog
@@ -326,5 +361,13 @@ const styles = StyleSheet.create({
     color: '#4A90D9',
     fontSize: 15,
     fontWeight: '500',
+  },
+  joinLabelDisabled: {
+    color: '#9AA5AE',
+  },
+  joinHint: {
+    color: '#D9534F',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
