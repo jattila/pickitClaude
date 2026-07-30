@@ -28,5 +28,6 @@ export { backfillMemberEmails } from './groups/backfillMemberEmails';
 export { onItemCreated } from './items/onItemCreated';
 export { onItemUpdated } from './items/onItemUpdated';
 export { onItemDeleted } from './items/onItemDeleted';
+export { disableBillingOnBudget } from './billing/disableBillingOnBudget';
 export { digestScheduler } from './digest/digestScheduler';
 export { onUserSettingsUpdated } from './digest/onUserSettingsUpdated';
