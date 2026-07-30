@@ -8,9 +8,12 @@ import { registerForPushNotifications } from '../services/notifications';
  */
 export function usePushRegistration(): void {
   const uid = useAuthStore((state) => state.user?.uid);
+  // Registering writes the token to Firestore, which an unverified account is
+  // not allowed to do — waiting avoids a guaranteed permission failure.
+  const emailVerified = useAuthStore((state) => state.emailVerified);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || !emailVerified) return;
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
 
@@ -27,5 +30,5 @@ export function usePushRegistration(): void {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [uid]);
+  }, [uid, emailVerified]);
 }

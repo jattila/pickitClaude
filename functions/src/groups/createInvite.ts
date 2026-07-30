@@ -1,4 +1,5 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { requireVerifiedUid } from '../lib/requireVerified';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { generateInviteCode } from '../lib/generateCode';
 
@@ -6,8 +7,7 @@ const EXPIRES_IN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_GENERATION_ATTEMPTS = 5;
 
 export const createInvite = onCall(async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) throw new HttpsError('unauthenticated', 'Be kell jelentkezni.');
+  const uid = requireVerifiedUid(request);
 
   const groupId = request.data?.groupId;
   if (typeof groupId !== 'string' || !groupId) {

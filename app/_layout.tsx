@@ -6,6 +6,8 @@ import { Stack } from "expo-router";
 import { HamburgerMenu } from "../src/components/HamburgerMenu";
 import { OfflineBanner } from "../src/components/OfflineBanner";
 import { NoticeDialog } from "../src/components/NoticeDialog";
+import { EmailVerificationGate } from "../src/components/EmailVerificationGate";
+import { useAuthStore } from "../src/store/authStore";
 import { usePushRegistration } from "../src/hooks/usePushRegistration";
 import { useReturnHomeOnSignOut } from "../src/hooks/useReturnHomeOnSignOut";
 import { usePresence } from "../src/hooks/usePresence";
@@ -19,6 +21,13 @@ import "../src/store/authStore";
  */
 function AppNavigator() {
   const { isConnected } = useNetworkStatus();
+  const user = useAuthStore((state) => state.user);
+  const emailVerified = useAuthStore((state) => state.emailVerified);
+
+  // Guests have no account and are unaffected; a signed-in but unverified user
+  // gets the gate instead of the app, because the rules give them no Firestore
+  // access at all and every screen would render empty.
+  if (user && !emailVerified) return <EmailVerificationGate />;
 
   return (
     <View style={{ flex: 1 }}>

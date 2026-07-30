@@ -1,4 +1,5 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { requireVerifiedUid } from '../lib/requireVerified';
 import { getFirestore } from 'firebase-admin/firestore';
 
 /**
@@ -13,8 +14,7 @@ import { getFirestore } from 'firebase-admin/firestore';
  * none, are left alone, so re-running it is free and safe.
  */
 export const backfillMemberEmails = onCall(async (request) => {
-  const callerUid = request.auth?.uid;
-  if (!callerUid) throw new HttpsError('unauthenticated', 'Be kell jelentkezni.');
+  const callerUid = requireVerifiedUid(request);
 
   const { groupId } = request.data ?? {};
   if (typeof groupId !== 'string' || !groupId) {

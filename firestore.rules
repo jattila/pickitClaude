@@ -3,8 +3,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // A verified email is part of being "signed in" everywhere below, on
+    // purpose: registration is open to anyone, and every write a fresh account
+    // makes fans out into Cloud Function invocations and further reads/writes
+    // on our bill. Requiring a real, reachable mailbox per account is the
+    // cheapest brake there is on mass automated abuse — it costs an honest
+    // user one click and costs an attacker a working inbox per account.
+    //
+    // The client keeps unverified users off Firestore entirely (see
+    // EmailVerificationGate), so nothing legitimate ever hits this and fails.
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
     function isGroupMember(groupData) {
@@ -113,7 +122,9 @@ service cloud.firestore {
       // resource == null means a get() on a not-yet-created list (e.g. resolving
       // a group's deterministic-id default list on first open); allowing it leaks
       // nothing — an existing list the caller can't access still fails below.
-      allow read: if resource == null || canAccessList(resource.data);
+      // Still gated on being signed in: every lookup is a billed read, and the
+      // callers that need this are always authenticated anyway.
+      allow read: if (resource == null && isSignedIn()) || canAccessList(resource.data);
       allow create: if isSignedIn()
         && request.resource.data.ownerId == request.auth.uid
         && (

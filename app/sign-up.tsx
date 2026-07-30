@@ -3,10 +3,12 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { keyboardAvoidingBehavior } from '../src/utils/keyboardAvoiding';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword, updateProfile } from '@react-native-firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  updateProfile,
+} from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
-import { migrateGuestDataToCloud } from '../src/services/migration';
-import { createDefaultUserProfile } from '../src/services/userProfile';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
 import { PasswordInput } from '../src/components/PasswordInput';
 
@@ -29,8 +31,11 @@ export default function SignUpScreen() {
     try {
       const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       await updateProfile(credential.user, { displayName: name.trim() });
-      await createDefaultUserProfile(credential.user.uid, email.trim(), name.trim());
-      await migrateGuestDataToCloud(credential.user.uid);
+      await sendEmailVerification(credential.user);
+      // Nothing is written to Firestore here on purpose — the profile and the
+      // guest-data migration both need a verified email now, so they run from
+      // provisionVerifiedAccount once the link is clicked. The gate screen
+      // takes over from here.
       router.replace('/');
     } catch (e: any) {
       if (e?.code === 'auth/email-already-in-use') {

@@ -20,9 +20,11 @@ const HEARTBEAT_MS = 2 * 60_000;
  */
 export function usePresence(): void {
   const uid = useAuthStore((state) => state.user?.uid);
+  // The heartbeat is a Firestore write, which an unverified account can't make.
+  const emailVerified = useAuthStore((state) => state.emailVerified);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || !emailVerified) return;
     const ref = doc(firestore, 'users', uid);
 
     const publish = (present: boolean) => {
@@ -43,5 +45,5 @@ export function usePresence(): void {
       subscription.remove();
       publish(false);
     };
-  }, [uid]);
+  }, [uid, emailVerified]);
 }

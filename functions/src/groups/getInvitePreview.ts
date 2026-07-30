@@ -1,4 +1,5 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { requireVerifiedUid } from '../lib/requireVerified';
 import { getFirestore } from 'firebase-admin/firestore';
 
 /**
@@ -8,8 +9,7 @@ import { getFirestore } from 'firebase-admin/firestore';
  * the live groups/{groupId} doc via the Admin SDK instead.
  */
 export const getInvitePreview = onCall(async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) throw new HttpsError('unauthenticated', 'Be kell jelentkezni.');
+  const uid = requireVerifiedUid(request);
 
   const code = request.data?.code;
   if (typeof code !== 'string' || !code) {

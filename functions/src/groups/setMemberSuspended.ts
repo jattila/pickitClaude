@@ -1,4 +1,5 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { requireVerifiedUid } from '../lib/requireVerified';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 
@@ -15,8 +16,7 @@ import { logger } from 'firebase-functions';
  * client from touching memberIds at all.
  */
 export const setMemberSuspended = onCall(async (request) => {
-  const callerUid = request.auth?.uid;
-  if (!callerUid) throw new HttpsError('unauthenticated', 'Be kell jelentkezni.');
+  const callerUid = requireVerifiedUid(request);
 
   const { groupId, uid, suspended } = request.data ?? {};
   if (typeof groupId !== 'string' || !groupId) {
