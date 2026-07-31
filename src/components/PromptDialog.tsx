@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 interface PromptDialogProps {
   visible: boolean;
@@ -28,6 +28,22 @@ export function PromptDialog({
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+
+  /**
+   * `autoFocus` is enough on iOS but not on Android inside a Modal: the input
+   * takes focus while the modal's window is still being attached, so the
+   * request to raise the keyboard lands nowhere. The field then sits there
+   * focused but silent until tapped — which is exactly what it looked like.
+   *
+   * Focusing from `onShow` waits for the window to exist, and the small delay
+   * covers the rest of the attach: focusing in the same tick still loses the
+   * race often enough to matter.
+   */
+  const focusAfterShow = () => {
+    if (Platform.OS !== 'android') return;
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
 
   useEffect(() => {
     if (visible) {
@@ -51,11 +67,18 @@ export function PromptDialog({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+      onShow={focusAfterShow}
+    >
       <Pressable style={styles.backdrop} onPress={onCancel}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>{title}</Text>
           <TextInput
+            ref={inputRef}
             value={value}
             onChangeText={(text) => {
               setValue(text);
