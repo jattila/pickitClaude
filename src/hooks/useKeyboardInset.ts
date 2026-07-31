@@ -31,19 +31,33 @@ const VENDOR_TOOLBAR_ALLOWANCE = 48;
 export function useKeyboardInset() {
   const ref = useRef<View>(null);
   const [inset, setInset] = useState(0);
+  /** What the row is currently lifted by; `inset` itself would be stale here. */
+  const applied = useRef(0);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
     const show = KeyboardEvents.addListener('keyboardDidShow', (event) => {
-      // Measured while the inset is 0, so it can't feed back into itself.
       ref.current?.measureInWindow((_x, y, _width, height) => {
-        const belowRow = Dimensions.get('window').height - (y + height);
+        // The measurement already includes the lift currently applied, so it
+        // has to come back out before deriving the next one.
+        //
+        // This fires more than once per session: moving focus between the name
+        // and quantity fields keeps the keyboard up but changes its type, and
+        // Android reports that as another keyboardDidShow. Measuring a row we
+        // had already lifted made the overlap look smaller than it is, so each
+        // event shrank the inset and the row sank back behind the keyboard.
+        const belowRow = Dimensions.get('window').height - (y + height) - applied.current;
         const overlap = event.height - belowRow;
-        setInset(overlap > 0 ? overlap + GAP + VENDOR_TOOLBAR_ALLOWANCE : 0);
+        const next = overlap > 0 ? overlap + GAP + VENDOR_TOOLBAR_ALLOWANCE : 0;
+        applied.current = next;
+        setInset(next);
       });
     });
-    const hide = KeyboardEvents.addListener('keyboardDidHide', () => setInset(0));
+    const hide = KeyboardEvents.addListener('keyboardDidHide', () => {
+      applied.current = 0;
+      setInset(0);
+    });
 
     return () => {
       show.remove();
