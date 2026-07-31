@@ -37,6 +37,15 @@
       "@react-native-firebase/messaging",
       "@react-native-firebase/app-check",
       [
+        "@react-native-firebase/analytics",
+        {
+          "ios": {
+            "//": "Links the Analytics build that never touches the IDFA. We only want to know how many people use the app and which screens they open — none of that needs an advertising identifier, and asking for one would drag in App Tracking Transparency and a 'tracking' declaration on the App Store.",
+            "withoutAdIdSupport": true
+          }
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {

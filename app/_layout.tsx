@@ -11,6 +11,7 @@ import { useAuthStore } from "../src/store/authStore";
 import { usePushRegistration } from "../src/hooks/usePushRegistration";
 import { useReturnHomeOnSignOut } from "../src/hooks/useReturnHomeOnSignOut";
 import { usePresence } from "../src/hooks/usePresence";
+import { useScreenTracking } from "../src/hooks/useScreenTracking";
 import { useNetworkStatus } from "../src/hooks/useNetworkStatus";
 import "../src/store/authStore";
 
@@ -21,6 +22,8 @@ import "../src/store/authStore";
  */
 function AppNavigator() {
   const { isConnected } = useNetworkStatus();
+  // Inside the navigator, because usePathname only works under the router.
+  useScreenTracking();
   const user = useAuthStore((state) => state.user);
   const emailVerified = useAuthStore((state) => state.emailVerified);
 
