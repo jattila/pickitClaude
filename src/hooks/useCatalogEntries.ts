@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useRepository } from '../data/useRepository';
 import type { CatalogEntry } from '../data/types';
 
@@ -19,10 +20,20 @@ export function useCatalogEntries(groupId: string | null) {
     setLoading(false);
   }, [repo, groupId]);
 
-  useEffect(() => {
-    setLoading(true);
-    refresh();
-  }, [refresh]);
+  // Re-reads every time the screen comes into focus, not just on mount. The
+  // catalog fills up as a side effect of adding items on *other* screens — and
+  // for cloud lists a Cloud Function writes the entry a moment after the item —
+  // so what a one-shot load produced was already stale by the time the user
+  // navigated here. The tab navigator keeps screens mounted, so nothing ever
+  // triggered a second read and the list looked permanently empty.
+  //
+  // Deliberately does not flip `loading` back on: the previous entries stay
+  // visible while the refresh runs, instead of flashing the empty state.
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   const renameEntry = async (catalogId: string, newName: string) => {
     await repo.renameCatalogEntry(groupId, catalogId, newName);
