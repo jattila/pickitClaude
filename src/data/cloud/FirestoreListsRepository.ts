@@ -295,8 +295,15 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     batch.delete(oldRef);
     batch.set(newRef, { ...data, name: trimmed, normalizedName, updatedAt: now });
     await batch.commit();
-    // The delete + create pair re-triggers the catalog/counter functions for
-    // the new item id; the old catalog entry stays as product history.
+
+    // The delete + create pair re-triggers the catalog/counter functions, so
+    // the new name lands in the catalog on its own. The old entry has to go
+    // explicitly: it only ever got there because of this item, and renaming
+    // says it was wrong — left alone it would go on offering the mistake as a
+    // suggestion forever. Best-effort, since the rename itself already
+    // succeeded and must not be reported as failed over a stale suggestion.
+    const catalog = await this.catalogCollectionForList(listId).catch(() => null);
+    if (catalog) await deleteDoc(doc(catalog, itemId)).catch(() => undefined);
   }
 
   async setItemQuantity(listId: string, itemId: string, quantity: string | null): Promise<void> {

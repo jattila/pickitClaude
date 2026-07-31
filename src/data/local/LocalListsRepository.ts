@@ -268,6 +268,10 @@ class LocalListsRepositoryImpl implements ListsRepository {
       ]
     );
     await this.upsertCatalog(trimmed, normalizedName, newId, now);
+    // The old name is dropped from the catalog: it only ever got there because
+    // of this item, and renaming says it was wrong. Keeping it would go on
+    // offering the mistake as a suggestion forever.
+    await db.runAsync('DELETE FROM catalog WHERE id = ?', [itemId]);
     await this.notifyItemsChanged(listId);
   }
 
