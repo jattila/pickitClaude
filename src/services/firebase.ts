@@ -17,6 +17,12 @@ export const firebaseApp = getApp();
  * can attest a development build; the native log prints a debug token that has
  * to be registered in the Firebase console once per device.
  *
+ * Android only, in practice. The package's iOS config plugin — which registers
+ * the provider factory natively before FirebaseApp.configure() — cannot be used
+ * here: it breaks the build under the static frameworks react-native-firebase
+ * requires (see DECISIONS.md). This call still runs on iOS and is harmless, but
+ * assume attestation there is inert until that is resolved.
+ *
  * Started here rather than from a screen so it runs before authStore's listener
  * attaches. Deliberately not awaited: the SDK holds requests until a token is
  * available, and a failure here must not stop the app from starting —

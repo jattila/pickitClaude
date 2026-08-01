@@ -253,3 +253,44 @@ alsó beviteli sáv megmaradjon.
 
 Ez maradjon feljegyezve: ha a billentyűzet-kezelés a jövőben újra gondot okoz,
 **ez a megoldás technikailag hibátlan**, és csak a megszokáson múlik.
+
+---
+
+## App Check natív bekötése iOS-en (a config plugin)
+
+**Amit próbáltunk:** a `@react-native-firebase/app-check` saját Expo config
+pluginjét bekötni, ahogy a dokumentáció írja. Ez a Swift AppDelegate mellé egy
+áthidaló fejlécbe teszi az `#import <RNFBAppCheckModule.h>` sort, hogy a natív
+provider factory még a `FirebaseApp.configure()` előtt beálljon.
+
+**Miért nem működött:** statikus frameworkök mellett (`use_frameworks!:static`,
+amit a react-native-firebase megkövetel) az `RNFBApp` modultérképe szövegesen
+tartalmazza a React fejléceit, ezért a Clang az `RCTBridgeModule` deklarációját az
+`RNFBApp` modul **tulajdonának** tekinti. Az áthidaló fejléc fordítása így elhasal:
+
+```
+declaration of 'RCTBridgeModule' must be imported from module
+'RNFBApp.RNFBAppModule' before it is required
+```
+
+**Három nekifutás, mind eredménytelen:**
+
+1. `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES` a pod targetekre — ez már
+   korábban is megvolt, és más hibaosztályt kezel.
+2. Ugyanez az **app targetre** is (a bridging headert az fordítja, nem a pod).
+3. `@import RNFBApp;` az include elé, hogy a deklaráció ténylegesen látható legyen.
+
+A 2. és 3. pont önmagában helyes megfigyelés volt, de a hiba egyiktől sem szűnt meg.
+
+**Amit helyette csinálunk:** a plugin nincs bekötve. A csomag és a JS-oldali
+inicializálás megmarad, de a natív provider factory nem áll be a Firebase
+konfigurálása előtt, ezért **iOS-en az attesztáció várhatóan hatástalan**.
+
+**Miért vállalható:** az App Check **Enforce ki van kapcsolva**, és a tényleges
+költségvédelmet nem ő adja, hanem a szabályok (`email_verified`), a
+`maxInstances: 10` és a számlázás-letiltó vészfék — ezek mind élesek. Androidon az
+App Check érintetlenül működik.
+
+**Ha egyszer újra elő kell venni:** az egész főverzió-frissítés (RNFirebase 26)
+kérdése lehet, vagy egy Objective-C `AppDelegate`-re váltásé — a plugin arra a
+világra készült, nem a SDK 54 Swift AppDelegate-jére.
