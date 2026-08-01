@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { BackHandler, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 interface PromptDialogProps {
   visible: boolean;
@@ -34,33 +34,6 @@ export function PromptDialog({
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const inputRef = useRef<TextInput>(null);
-
-  /**
-   * `autoFocus` is enough on iOS but not on Android inside a Modal: the input
-   * takes focus while the modal's window is still being attached, so the
-   * request to raise the keyboard lands nowhere. The field then sits there
-   * focused but silent until tapped — which is exactly what it looked like.
-   *
-   * Focusing from `onShow` waits for the window to exist, and the small delay
-   * covers the rest of the attach: focusing in the same tick still loses the
-   * race often enough to matter.
-   */
-  const focusAfterShow = () => {
-    if (Platform.OS !== 'android') return;
-    // Android drops the IME request if it arrives while the modal's window is
-    // still attaching, and there is no event for "attached" — onShow fires too
-    // early in practice. A single delayed focus was still losing the race, so
-    // ask a few times across the first half second; focusing an already
-    // focused field costs nothing.
-    let attempts = 0;
-    const tryFocus = () => {
-      attempts += 1;
-      inputRef.current?.focus();
-      if (attempts < 5) setTimeout(tryFocus, 120);
-    };
-    tryFocus();
-  };
 
   useEffect(() => {
     if (visible) {
@@ -68,6 +41,18 @@ export function PromptDialog({
       setError(null);
     }
   }, [visible, initialValue]);
+
+  // A Modal handled the hardware back button for us via onRequestClose; an
+  // in-app overlay has to do it itself, or back would leave the screen with
+  // the dialog still open on top of wherever it landed.
+  useEffect(() => {
+    if (!visible) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      onCancel();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [visible, onCancel]);
 
   const submit = async () => {
     const trimmed = value.trim();
@@ -83,20 +68,29 @@ export function PromptDialog({
     }
   };
 
+  /**
+   * Rendered inside the app's own view tree rather than in a Modal.
+   *
+   * On Android a Modal is a separate window, and that is what made the
+   * keyboard unreachable here: the input took focus before the window had
+   * finished attaching, so the request to raise the keyboard was dropped, and
+   * the window neither resized for the keyboard nor reported its insets to the
+   * app. Focusing on onShow, then retrying five times across half a second,
+   * still did not raise it reliably.
+   *
+   * In the app's own window all of that is ordinary again: mounting the field
+   * with autoFocus raises the keyboard, and the activity resizes around it.
+   * The cost is that the backdrop covers the screen but not the navigation
+   * header — acceptable, and the card sits near the top anyway.
+   */
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
-      onShow={focusAfterShow}
-    >
       <Pressable style={styles.backdrop} onPress={onCancel}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>{title}</Text>
           {message ? <Text style={styles.message}>{message}</Text> : null}
           <TextInput
-            ref={inputRef}
             value={value}
             onChangeText={(text) => {
               setValue(text);
@@ -127,7 +121,6 @@ export function PromptDialog({
           </View>
         </Pressable>
       </Pressable>
-    </Modal>
   );
 }
 
@@ -137,7 +130,10 @@ const styles = StyleSheet.create({
   // nor reports insets to the app, so a centred card sits behind the keyboard
   // with no way to lift it. Up here the keyboard cannot reach it.
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    // Above the screen's own content, including anything with elevation.
+    zIndex: 100,
+    elevation: 100,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'flex-start',
