@@ -175,7 +175,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
       <ConfirmDialog
         visible={clearingChecked}
         title="Megvett tételek törlése"
-        message={`${checkedItems.length} megvett tétel kerül le a listáról. A katalógusban megmaradnak, tehát bármikor újra felveheted őket.`}
+        message={`${checkedItems.length} megvett tétel kerül le a listáról.`}
         confirmLabel="Törlés"
         destructive
         onCancel={() => setClearingChecked(false)}
