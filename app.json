@@ -5,6 +5,13 @@
     "scheme": "pickit",
     "version": "1.0.0",
     "orientation": "portrait",
+    "updates": {
+      "url": "https://u.expo.dev/b4dfe696-2f33-42f8-83ac-d851ffd42913"
+    },
+    "//runtimeVersion": "fingerprint, not appVersion: an update must only reach builds whose native layer actually matches it. The fingerprint is computed from the native dependencies and config, so adding a native module (or patching a pod, which this project does) automatically starts a new runtime — and JS-only changes keep flowing to the existing builds. With appVersion we would have to remember to bump the version by hand every time the native side changed, and forgetting means shipping JS to a binary that cannot run it.",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
