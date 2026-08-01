@@ -210,7 +210,9 @@ export default function GroupMembersScreen() {
       <PromptDialog
         visible={enteringEmail}
         title="Tag meghívása"
-        placeholder="E-mail cím"
+        message="Add meg a meghívott e-mail címét — ezzel jelenik meg a tagok listájában, amíg nem csatlakozik."
+        placeholder="pl. anna@pelda.hu"
+        email
         confirmLabel="Meghívó"
         onCancel={() => setEnteringEmail(false)}
         onConfirm={(email) => {
