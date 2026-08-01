@@ -1,6 +1,26 @@
-const { withDangerousMod } = require('@expo/config-plugins');
+const { withDangerousMod, withPlugins, withXcodeProject } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
+
+const MODULAR_INCLUDES = 'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES';
+
+/**
+ * The same allowance, but for the *app* target rather than the pods.
+ *
+ * @react-native-firebase/app-check's plugin puts `#import <RNFBAppCheckModule.h>`
+ * into the Swift bridging header, and that header imports
+ * <React/RCTBridgeModule.h>. The bridging header is compiled by the app target,
+ * which the Podfile's post_install below never touches — so the build failed
+ * there with "declaration of 'RCTBridgeModule' must be imported from module
+ * 'RNFBApp.RNFBAppModule' before it is required", followed by a cascade of C
+ * parse errors from the same header.
+ */
+function withAppTargetModularIncludes(config) {
+  return withXcodeProject(config, (config) => {
+    config.modResults.addBuildProperty(MODULAR_INCLUDES, 'YES');
+    return config;
+  });
+}
 
 /**
  * react-native-firebase's Swift pods (FirebaseAuth, FirebaseFirestore, ...) only
@@ -27,7 +47,7 @@ function withFirebaseStaticFramework(config) {
       // a Clang module under use_frameworks:static, tripping
       // -Wnon-modular-include-in-framework-module as an error. Known issue,
       // no upstream fix yet: https://github.com/expo/expo/issues/39607
-      const buildSettingMarker = 'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES';
+      const buildSettingMarker = MODULAR_INCLUDES;
       if (!contents.includes(buildSettingMarker)) {
         contents = contents.replace(
           /post_install do \|installer\|\n/,
@@ -41,4 +61,5 @@ function withFirebaseStaticFramework(config) {
   ]);
 }
 
-module.exports = withFirebaseStaticFramework;
+module.exports = (config) =>
+  withPlugins(config, [withFirebaseStaticFramework, withAppTargetModularIncludes]);
