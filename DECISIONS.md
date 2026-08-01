@@ -256,41 +256,35 @@ Ez maradjon feljegyezve: ha a billentyűzet-kezelés a jövőben újra gondot ok
 
 ---
 
-## App Check natív bekötése iOS-en (a config plugin)
+## App Check iOS fordítási hibája — négy nekifutás, három téves
 
-**Amit próbáltunk:** a `@react-native-firebase/app-check` saját Expo config
-pluginjét bekötni, ahogy a dokumentáció írja. Ez a Swift AppDelegate mellé egy
-áthidaló fejlécbe teszi az `#import <RNFBAppCheckModule.h>` sort, hogy a natív
-provider factory még a `FirebaseApp.configure()` előtt beálljon.
-
-**Miért nem működött:** statikus frameworkök mellett (`use_frameworks!:static`,
-amit a react-native-firebase megkövetel) az `RNFBApp` modultérképe szövegesen
-tartalmazza a React fejléceit, ezért a Clang az `RCTBridgeModule` deklarációját az
-`RNFBApp` modul **tulajdonának** tekinti. Az áthidaló fejléc fordítása így elhasal:
+**A tünet:** minden iOS build elhasalt ugyanezzel:
 
 ```
 declaration of 'RCTBridgeModule' must be imported from module
 'RNFBApp.RNFBAppModule' before it is required
 ```
 
-**Három nekifutás, mind eredménytelen:**
+**Amit próbáltunk, és miért nem volt jó:**
 
-1. `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES` a pod targetekre — ez már
-   korábban is megvolt, és más hibaosztályt kezel.
-2. Ugyanez az **app targetre** is (a bridging headert az fordítja, nem a pod).
-3. `@import RNFBApp;` az include elé, hogy a deklaráció ténylegesen látható legyen.
+1. `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES` az **app targetre** —
+   abból a feltevésből, hogy az áthidaló fejléc fordítása bukik el. Nem az volt.
+2. `@import RNFBApp;` az áthidaló fejléc élére — ugyanazon a téves feltevésen.
+3. Az App Check **config plugin kivétele** az `app.json`-ből — ha a fejléc a baj,
+   plugin nélkül nincs fejléc. A hiba plugin nélkül is pontosan ugyanaz maradt.
 
-A 2. és 3. pont önmagában helyes megfigyelés volt, de a hiba egyiktől sem szűnt meg.
+**Ami tényleg volt:** a hiba **soha nem az áthidaló fejlécben** volt, hanem magában
+a podban — `RNFBAppCheckModule.h:24`. Ez mindvégig ott állt a hibaüzenetben, csak
+az EAS összefoglalója nem mutat fájlnevet, és az első három nekifutás ezt nem
+ellenőrizte. A teljes Xcode-napló (brotli-tömörítve, a `logFiles` mezőben) egy
+perc alatt megmutatta.
 
-**Amit helyette csinálunk:** a plugin nincs bekötve. A csomag és a JS-oldali
-inicializálás megmarad, de a natív provider factory nem áll be a Firebase
-konfigurálása előtt, ezért **iOS-en az attesztáció várhatóan hatástalan**.
+**A megoldás:** ugyanaz, amit a projekt már két másik RNFirebase csomagnál használ —
+a `<React/RCTBridgeModule.h>` importot a fájl **elejére** kell tenni, bármi elé, ami
+az `RNFBApp`-ot behúzza. Különben az `RNFBApp` modultérképe magának követeli az
+`RCTBridgeModule` deklarációját. Rögzítve:
+`patches/@react-native-firebase+app-check+25.1.0.patch`.
 
-**Miért vállalható:** az App Check **Enforce ki van kapcsolva**, és a tényleges
-költségvédelmet nem ő adja, hanem a szabályok (`email_verified`), a
-`maxInstances: 10` és a számlázás-letiltó vészfék — ezek mind élesek. Androidon az
-App Check érintetlenül működik.
-
-**Ha egyszer újra elő kell venni:** az egész főverzió-frissítés (RNFirebase 26)
-kérdése lehet, vagy egy Objective-C `AppDelegate`-re váltásé — a plugin arra a
-világra készült, nem a SDK 54 Swift AppDelegate-jére.
+**Tanulság:** a build-összefoglalók hibalistája fájlnév nélkül félrevezető. Egy több
+órás build kilövése előtt **a teljes naplót** kell megnézni — az EAS `logFiles`
+mezőjében elérhető, és letölthető.
