@@ -138,10 +138,32 @@ export function subscribeGroupMembers(groupId: string, onChange: (members: Group
   return watchQuery(q, (snap) => snap.docs.map(toGroupMember), onChange, []);
 }
 
-export async function createInvite(groupId: string): Promise<string> {
-  const call = httpsCallable<{ groupId: string }, { code: string }>(functions, 'createInvite');
-  const result = await call({ groupId });
+export async function createInvite(groupId: string, email: string): Promise<string> {
+  const call = httpsCallable<{ groupId: string; email: string }, { code: string }>(
+    functions,
+    'createInvite'
+  );
+  const result = await call({ groupId, email });
   return result.data.code;
+}
+
+/** 'invited' = no account yet, or one that simply hasn't joined; 'awaiting-verification' = account exists but its address is unconfirmed. */
+export type PendingInviteStatus = 'invited' | 'awaiting-verification';
+
+export interface PendingInvite {
+  code: string;
+  email: string;
+  status: PendingInviteStatus;
+  createdAt: number;
+}
+
+export async function getGroupInvites(groupId: string): Promise<PendingInvite[]> {
+  const call = httpsCallable<{ groupId: string }, { invites: PendingInvite[] }>(
+    functions,
+    'getGroupInvites'
+  );
+  const result = await call({ groupId });
+  return result.data.invites;
 }
 
 export interface RedeemInviteResult {

@@ -52,7 +52,12 @@ export const redeemInvite = onCall(async (request) => {
       role: 'member',
       joinedAt: Date.now(),
     });
-    tx.update(inviteRef, { useCount: FieldValue.increment(1) });
+    // Marking it redeemed is what takes the pending row out of the member
+    // list. Deliberately not checking that the caller's address matches
+    // invitedEmail: the code is still shared by hand, and a family that
+    // forwards it to the right person should not be blocked over whose
+    // mailbox it travelled through.
+    tx.update(inviteRef, { useCount: FieldValue.increment(1), redeemedAt: Date.now(), redeemedBy: uid });
 
     return { groupId: invite.groupId, groupName: invite.groupName, alreadyMember: false };
   });

@@ -12,6 +12,8 @@ import {
 import { useNetworkStatus } from '../../../../../src/hooks/useNetworkStatus';
 import { useAuthStore } from '../../../../../src/store/authStore';
 import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
+import { PromptDialog } from '../../../../../src/components/PromptDialog';
+import { useGroupInvites } from '../../../../../src/hooks/useGroupInvites';
 import type { GroupMember } from '../../../../../src/data/types';
 
 export default function GroupMembersScreen() {
@@ -26,6 +28,8 @@ export default function GroupMembersScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pendingSuspend, setPendingSuspend] = useState<GroupMember | null>(null);
   const [working, setWorking] = useState(false);
+  const [enteringEmail, setEnteringEmail] = useState(false);
+  const { invites, refresh: refreshInvites } = useGroupInvites(groupId);
 
   const isOwner = !!currentUid && group?.ownerId === currentUid;
 
@@ -55,11 +59,14 @@ export default function GroupMembersScreen() {
     }
   };
 
-  const handleInvite = async () => {
+  const handleInvite = async (email: string) => {
     setError(null);
     setCreatingInvite(true);
     try {
-      const code = await createInvite(groupId);
+      const code = await createInvite(groupId, email);
+      // Refresh before sharing: the share sheet suspends this screen, and the
+      // invitee should already be in the list when it comes back.
+      await refreshInvites();
       const groupName = group?.name ?? 'a csoportomhoz';
       await Share.share({
         message: `Csatlakozz a(z) "${groupName}" csoporthoz a PickIt appban!\n\npickit://join/${code}\n\nVagy add meg ezt a kódot: ${code}`,
@@ -75,7 +82,7 @@ export default function GroupMembersScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'Tagok' }} />
 
-      {!loading && members.length === 0 ? (
+      {!loading && members.length === 0 && invites.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>Még nincsenek tagok.</Text>
         </View>
@@ -125,6 +132,27 @@ export default function GroupMembersScreen() {
               </Pressable>
             );
           }}
+          /* Outstanding invites sit under the real members, muted: they are
+             people the group is waiting on, not people who can see anything
+             yet. Rendered as a footer so they share the list's scrolling. */
+          ListFooterComponent={
+            invites.length === 0 ? null : (
+              <View>
+                {invites.map((invite) => (
+                  <View key={invite.code} style={styles.memberRow}>
+                    <View style={styles.memberTextColumn}>
+                      <Text style={styles.pendingEmail}>{invite.email}</Text>
+                    </View>
+                    <Text style={styles.pendingStatus}>
+                      {invite.status === 'awaiting-verification'
+                        ? 'visszaigazolásra vár'
+                        : 'meghívva'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )
+          }
         />
       )}
 
@@ -133,11 +161,27 @@ export default function GroupMembersScreen() {
       ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable style={styles.inviteButton} onPress={handleInvite} disabled={creatingInvite || !isConnected}>
+      <Pressable
+        style={styles.inviteButton}
+        onPress={() => setEnteringEmail(true)}
+        disabled={creatingInvite || !isConnected}
+      >
         <Text style={styles.inviteButtonLabel}>
           {creatingInvite ? 'Meghívó készítése…' : '+ Tag meghívása'}
         </Text>
       </Pressable>
+
+      <PromptDialog
+        visible={enteringEmail}
+        title="Tag meghívása"
+        placeholder="E-mail cím"
+        confirmLabel="Meghívó"
+        onCancel={() => setEnteringEmail(false)}
+        onConfirm={(email) => {
+          setEnteringEmail(false);
+          handleInvite(email);
+        }}
+      />
 
       <ConfirmDialog
         visible={!!pendingSuspend}
@@ -185,6 +229,14 @@ const styles = StyleSheet.create({
   },
   memberTextColumn: {
     flex: 1,
+  },
+  pendingEmail: {
+    fontSize: 15,
+    color: '#999',
+  },
+  pendingStatus: {
+    fontSize: 13,
+    color: '#B08A3D',
   },
   memberName: {
     fontSize: 16,
