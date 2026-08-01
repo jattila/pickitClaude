@@ -58,11 +58,17 @@ export default function SignUpScreen() {
           A meglévő listáid és tételeid automatikusan átkerülnek a fiókodba.
         </Text>
 
+        {/* Labelled for autofill. Untagged, Android had to guess which field
+            was the account identifier and settled on this one, the first text
+            input — which is why the sign-in screen kept offering a name where
+            an email address belonged. */}
         <TextInput
           value={name}
           onChangeText={setName}
           placeholder="Neved"
           autoCapitalize="words"
+          autoComplete="name"
+          textContentType="name"
           style={styles.input}
         />
         <TextInput
@@ -71,6 +77,8 @@ export default function SignUpScreen() {
           placeholder="Email cím"
           autoCapitalize="none"
           keyboardType="email-address"
+          autoComplete="email"
+          textContentType="emailAddress"
           style={styles.input}
         />
         <PasswordInput

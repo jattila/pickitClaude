@@ -40,6 +40,11 @@ export default function SignInScreen() {
           placeholder="Email cím"
           autoCapitalize="none"
           keyboardType="email-address"
+          // Without these the Android autofill service has to guess which field
+          // is the username, and on the sign-up screen it guessed the first text
+          // input — the name — then offered that back here.
+          autoComplete="email"
+          textContentType="emailAddress"
           style={styles.input}
         />
         <PasswordInput value={password} onChangeText={setPassword} onSubmitEditing={submit} />

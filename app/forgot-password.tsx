@@ -37,6 +37,8 @@ export default function ForgotPasswordScreen() {
               placeholder="Email cím"
               autoCapitalize="none"
               keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
               style={styles.input}
             />
             {!isConnected ? (
