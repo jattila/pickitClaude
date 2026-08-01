@@ -157,6 +157,12 @@ export interface PendingInvite {
   createdAt: number;
 }
 
+/** Owner-only. Withdraws an invite that hasn't been redeemed yet. */
+export async function revokeInvite(code: string): Promise<void> {
+  const call = httpsCallable<{ code: string }, { revoked: boolean }>(functions, 'revokeInvite');
+  await call({ code });
+}
+
 export async function getGroupInvites(groupId: string): Promise<PendingInvite[]> {
   const call = httpsCallable<{ groupId: string }, { invites: PendingInvite[] }>(
     functions,

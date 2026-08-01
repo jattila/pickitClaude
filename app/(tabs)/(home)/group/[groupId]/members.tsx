@@ -7,7 +7,9 @@ import { useGroups } from '../../../../../src/hooks/useGroups';
 import {
   backfillMemberEmails,
   createInvite,
+  revokeInvite,
   setMemberSuspended,
+  type PendingInvite,
 } from '../../../../../src/services/groups';
 import { useNetworkStatus } from '../../../../../src/hooks/useNetworkStatus';
 import { useAuthStore } from '../../../../../src/store/authStore';
@@ -29,7 +31,21 @@ export default function GroupMembersScreen() {
   const [pendingSuspend, setPendingSuspend] = useState<GroupMember | null>(null);
   const [working, setWorking] = useState(false);
   const [enteringEmail, setEnteringEmail] = useState(false);
+  const [pendingRevoke, setPendingRevoke] = useState<PendingInvite | null>(null);
   const { invites, refresh: refreshInvites } = useGroupInvites(groupId);
+
+  const applyRevoke = async (invite: PendingInvite) => {
+    setError(null);
+    setWorking(true);
+    try {
+      await revokeInvite(invite.code);
+      await refreshInvites();
+    } catch (e: any) {
+      setError(e?.message ?? 'Nem sikerült visszavonni a meghívót.');
+    } finally {
+      setWorking(false);
+    }
+  };
 
   const isOwner = !!currentUid && group?.ownerId === currentUid;
 
@@ -139,7 +155,14 @@ export default function GroupMembersScreen() {
             invites.length === 0 ? null : (
               <View>
                 {invites.map((invite) => (
-                  <View key={invite.code} style={styles.memberRow}>
+                  <Pressable
+                    key={invite.code}
+                    style={styles.memberRow}
+                    // Long-press to withdraw, matching how the rest of this app
+                    // hides destructive actions behind a deliberate gesture.
+                    onLongPress={isOwner ? () => setPendingRevoke(invite) : undefined}
+                    delayLongPress={350}
+                  >
                     <View style={styles.memberTextColumn}>
                       <Text style={styles.pendingEmail}>{invite.email}</Text>
                     </View>
@@ -148,7 +171,7 @@ export default function GroupMembersScreen() {
                         ? 'visszaigazolásra vár'
                         : 'meghívva'}
                     </Text>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             )
@@ -170,6 +193,19 @@ export default function GroupMembersScreen() {
           {creatingInvite ? 'Meghívó készítése…' : '+ Tag meghívása'}
         </Text>
       </Pressable>
+
+      <ConfirmDialog
+        visible={!!pendingRevoke}
+        title="Meghívó visszavonása"
+        message={`A(z) "${pendingRevoke?.email}" címre szóló meghívó érvénytelenné válik. Ha már elküldted a kódot, az többé nem lesz beváltható.`}
+        confirmLabel="Visszavonás"
+        destructive
+        onCancel={() => setPendingRevoke(null)}
+        onConfirm={() => {
+          if (pendingRevoke) applyRevoke(pendingRevoke);
+          setPendingRevoke(null);
+        }}
+      />
 
       <PromptDialog
         visible={enteringEmail}

@@ -23,6 +23,7 @@ export { createInvite } from './groups/createInvite';
 export { redeemInvite } from './groups/redeemInvite';
 export { getInvitePreview } from './groups/getInvitePreview';
 export { getGroupInvites } from './groups/getGroupInvites';
+export { revokeInvite } from './groups/revokeInvite';
 export { setMemberSuspended } from './groups/setMemberSuspended';
 export { leaveGroup } from './groups/leaveGroup';
 export { backfillMemberEmails } from './groups/backfillMemberEmails';
