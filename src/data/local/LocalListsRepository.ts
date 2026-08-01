@@ -323,6 +323,12 @@ class LocalListsRepositoryImpl implements ListsRepository {
     await this.notifyItemsChanged(listId);
   }
 
+  async deleteCheckedItems(listId: string): Promise<void> {
+    const db = await getDb();
+    await db.runAsync('DELETE FROM items WHERE listId = ? AND checked = 1', [listId]);
+    await this.notifyItemsChanged(listId);
+  }
+
   async getCatalogEntries(_groupId: string | null): Promise<CatalogEntry[]> {
     // Guests have no groups — there's only ever the one local catalog table.
     const db = await getDb();

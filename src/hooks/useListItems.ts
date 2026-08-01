@@ -72,5 +72,9 @@ export function useListItems(listId: string | null) {
       if (!listId) throw new Error('Nincs kiválasztott lista.');
       return repo.deleteItem(listId, itemId);
     },
+    deleteCheckedItems: () => {
+      if (!listId) throw new Error('Nincs kiválasztott lista.');
+      return repo.deleteCheckedItems(listId);
+    },
   };
 }

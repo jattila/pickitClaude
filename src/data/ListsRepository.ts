@@ -48,6 +48,16 @@ export interface ListsRepository {
   deleteItem(listId: string, itemId: string): Promise<void>;
 
   /**
+   * Clears everything already bought off the list in one go — the tidy-up
+   * after a shop, which item by item is tedious enough that the "Megvéve"
+   * section just grows instead.
+   *
+   * Catalog entries stay: the products were real, and the catalog exists so
+   * they can be added again quickly. Only a rename says a name was a mistake.
+   */
+  deleteCheckedItems(listId: string): Promise<void>;
+
+  /**
    * The whole catalog for a scope (null = the caller's personal one). Backs
    * both the catalog editor and autocomplete: matching happens client-side,
    * since Firestore can only do prefix ranges and suggestions need to match

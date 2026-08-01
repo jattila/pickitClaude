@@ -33,6 +33,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
     checkItem,
     restoreItem,
     deleteItem,
+    deleteCheckedItems,
   } = useListItems(listId);
   const list = useListMeta(listId);
   const settings = useUserSettings();
@@ -43,6 +44,7 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
   const [quantityItem, setQuantityItem] = useState<ShoppingItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ShoppingItem | null>(null);
   const [restoreRequest, setRestoreRequest] = useState<ShoppingItem | null>(null);
+  const [clearingChecked, setClearingChecked] = useState(false);
   const [scrollTargetId, setScrollTargetId] = useState<string | null>(null);
   const [dismissedRecentIds, setDismissedRecentIds] = useState<Set<string>>(new Set());
 
@@ -169,6 +171,19 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
           setDeletingItem(null);
         }}
       />
+
+      <ConfirmDialog
+        visible={clearingChecked}
+        title="Megvett tételek törlése"
+        message={`${checkedItems.length} megvett tétel kerül le a listáról. A katalógusban megmaradnak, tehát bármikor újra felveheted őket.`}
+        confirmLabel="Törlés"
+        destructive
+        onCancel={() => setClearingChecked(false)}
+        onConfirm={() => {
+          setClearingChecked(false);
+          deleteCheckedItems().catch(() => undefined);
+        }}
+      />
     </>
   );
 
@@ -217,6 +232,8 @@ export function useItemsPanel(listId: string | null, ensureListId?: () => Promis
     setQuantityItem,
     toggleFavorite,
     setDeletingItem,
+    clearCheckedRequest: () => setClearingChecked(true),
+    checkedCount: checkedItems.length,
     checkItem,
     dialogs,
   };

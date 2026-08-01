@@ -345,6 +345,23 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     await deleteDoc(doc(firestore, 'lists', listId, 'items', itemId));
   }
 
+  async deleteCheckedItems(listId: string): Promise<void> {
+    const snap = await getDocs(
+      query(collection(firestore, 'lists', listId, 'items'), where('checked', '==', true))
+    );
+    if (snap.empty) return;
+
+    // Firestore caps a batch at 500 writes. A shopping list will not get near
+    // that, but a silent partial failure at the boundary is the kind of bug
+    // that only shows up on someone else's list.
+    const CHUNK = 400;
+    for (let i = 0; i < snap.docs.length; i += CHUNK) {
+      const batch = writeBatch(firestore);
+      for (const docSnap of snap.docs.slice(i, i + CHUNK)) batch.delete(docSnap.ref);
+      await batch.commit();
+    }
+  }
+
   /** Resolves whether a list feeds the group catalog or the owner's personal one. */
   private async catalogCollectionForList(listId: string | null) {
     const uid = requireUid();

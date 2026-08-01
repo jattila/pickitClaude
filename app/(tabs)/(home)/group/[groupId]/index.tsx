@@ -11,6 +11,7 @@ import { useGroupDefaultList } from '../../../../../src/hooks/useGroupDefaultLis
 import { useItemsPanel } from '../../../../../src/hooks/useItemsPanel';
 import { ListRow } from '../../../../../src/components/ListRow';
 import { ItemRow } from '../../../../../src/components/ItemRow';
+import { SectionHeaderRow } from '../../../../../src/components/SectionHeaderRow';
 import { ItemNameInput } from '../../../../../src/components/ItemNameInput';
 import { PromptDialog } from '../../../../../src/components/PromptDialog';
 import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
@@ -41,6 +42,8 @@ export default function GroupListsScreen() {
     setQuantityItem,
     toggleFavorite,
     setDeletingItem,
+    clearCheckedRequest,
+    checkedCount,
     checkItem,
     dialogs: itemDialogs,
   } = useItemsPanel(defaultListId, ensureListId);
@@ -100,7 +103,13 @@ export default function GroupListsScreen() {
 
         {sections.map((section) => (
           <Fragment key={section.title ?? 'active'}>
-            {section.title ? <Text style={styles.sectionHeader}>{section.title}</Text> : null}
+            {section.title ? (
+              <SectionHeaderRow
+                title={section.title}
+                actionLabel={checkedCount > 0 ? 'Mind törlése' : undefined}
+                onAction={clearCheckedRequest}
+              />
+            ) : null}
             {section.data.map((item) => (
               <View key={item.id} onLayout={item.id === scrollTargetId ? handleTargetLayout : undefined}>
                 <ItemRow
