@@ -282,8 +282,12 @@ perc alatt megmutatta.
 **A megoldás:** ugyanaz, amit a projekt már két másik RNFirebase csomagnál használ —
 a `<React/RCTBridgeModule.h>` importot a fájl **elejére** kell tenni, bármi elé, ami
 az `RNFBApp`-ot behúzza. Különben az `RNFBApp` modultérképe magának követeli az
-`RCTBridgeModule` deklarációját. Rögzítve:
-`patches/@react-native-firebase+app-check+25.1.0.patch`.
+`RCTBridgeModule` deklarációját. Rögzítve két patchben:
+`@react-native-firebase+app-check+25.1.0.patch` és
+`@react-native-firebase+analytics+25.1.0.patch` — az App Check javítása után a hiba
+változatlan formában átugrott az Analyticsre, ugyanabból az okból. A négy RNFirebase
+csomagból, amelyik a `RCTBridgeModule`-t használja, immár mind a négy patchelt; az
+`auth` és az `app` eltérő sorrendet használ, de azok hónapok óta hibátlanul fordulnak.
 
 **Tanulság:** a build-összefoglalók hibalistája fájlnév nélkül félrevezető. Egy több
 órás build kilövése előtt **a teljes naplót** kell megnézni — az EAS `logFiles`

@@ -1,0 +1,27 @@
+diff --git a/node_modules/@react-native-firebase/analytics/ios/RNFBAnalytics/RNFBAnalyticsModule.h b/node_modules/@react-native-firebase/analytics/ios/RNFBAnalytics/RNFBAnalyticsModule.h
+index 8f0268e..57252ef 100644
+--- a/node_modules/@react-native-firebase/analytics/ios/RNFBAnalytics/RNFBAnalyticsModule.h
++++ b/node_modules/@react-native-firebase/analytics/ios/RNFBAnalytics/RNFBAnalyticsModule.h
+@@ -15,9 +15,8 @@
+  *
+  */
+ 
+-#import <Foundation/Foundation.h>
+-
+ #import <React/RCTBridgeModule.h>
++#import <Foundation/Foundation.h>
+ 
+ @interface RNFBAnalyticsModule : NSObject <RCTBridgeModule>
+ 
+diff --git a/node_modules/@react-native-firebase/analytics/ios/RNFBAnalytics/RNFBAnalyticsModule.m b/node_modules/@react-native-firebase/analytics/ios/RNFBAnalytics/RNFBAnalyticsModule.m
+index 7ecfb5b..174d94d 100644
+--- a/node_modules/@react-native-firebase/analytics/ios/RNFBAnalytics/RNFBAnalyticsModule.m
++++ b/node_modules/@react-native-firebase/analytics/ios/RNFBAnalytics/RNFBAnalyticsModule.m
+@@ -15,6 +15,7 @@
+  *
+  */
+ 
++#import <React/RCTBridgeModule.h>
+ #import <Firebase/Firebase.h>
+ #import <React/RCTUtils.h>
+ 
