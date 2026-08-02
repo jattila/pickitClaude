@@ -20,7 +20,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     ...config.ios,
     bundleIdentifier: IS_DEV ? 'com.pickitclaude.app.dev' : config.ios?.bundleIdentifier,
-    googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST ?? config.ios?.googleServicesFile,
+    // The variant-specific fallback matters even though EAS supplies the file
+    // through an environment secret: the fingerprint runtime version is
+    // computed both here and on the builder, and this file's contents feed
+    // into it. Falling back to the production plist locally while EAS used the
+    // development one made the two disagree, and expo-updates refused the
+    // build — correctly, since that mismatch is exactly what it exists to
+    // catch.
+    googleServicesFile:
+      process.env.GOOGLE_SERVICE_INFO_PLIST ??
+      (IS_DEV ? './GoogleService-Info.dev.plist' : config.ios?.googleServicesFile),
     entitlements: {
       ...config.ios?.entitlements,
       // "production" because the development profile builds for internal
