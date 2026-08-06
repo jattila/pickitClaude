@@ -11,9 +11,11 @@ import { requireVerifiedUid } from '../lib/requireVerified';
  * codes with a clear message, so someone who was sent the code learns it was
  * withdrawn instead of being told it never existed.
  *
- * Owner-only. Any member can *see* the pending list, but taking an invitation
- * back is a membership decision, and membership is the owner's to manage —
- * same reasoning as suspending.
+ * The owner, or whoever created the invite. Any member can invite someone into
+ * the group, so any member can mistype an address — and being able to send an
+ * invitation but not withdraw it leaves them waiting a week for it to expire.
+ * Taking back an invitation nobody has accepted is not a membership decision
+ * yet, which is why this is wider than suspending.
  */
 export const revokeInvite = onCall(async (request) => {
   const uid = requireVerifiedUid(request);
@@ -35,8 +37,11 @@ export const revokeInvite = onCall(async (request) => {
 
   const groupSnap = await db.collection('groups').doc(invite.groupId).get();
   if (!groupSnap.exists) throw new HttpsError('not-found', 'A csoport nem található.');
-  if (groupSnap.data()!.ownerId !== uid) {
-    throw new HttpsError('permission-denied', 'Csak a csoport tulajdonosa vonhat vissza meghívót.');
+  if (groupSnap.data()!.ownerId !== uid && invite.createdBy !== uid) {
+    throw new HttpsError(
+      'permission-denied',
+      'Csak a meghívó küldője vagy a csoport tulajdonosa vonhatja vissza.'
+    );
   }
 
   await inviteRef.update({ revoked: true, revokedAt: Date.now(), revokedBy: uid });

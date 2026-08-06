@@ -35,6 +35,24 @@ service cloud.firestore {
       return isPersonalListOwner(listData) || isGroupListMember(listData);
     }
 
+    // Sharing is one field changing: lists.groupId names the audience a list is
+    // shared with, and null means private. That makes it the only update that
+    // can widen who sees a list, so it carries conditions the other updates
+    // don't — being allowed to *edit* a list is not the same as being allowed
+    // to hand it to a group.
+    //
+    // Restricted to the owner: every other member of a shared list can already
+    // edit it, and without this any of them could pass it on to a further group
+    // the owner never agreed to. Naming a group requires membership of it, so a
+    // list can't be pushed into a group the caller isn't in.
+    function isValidShareChange() {
+      return resource.data.ownerId == request.auth.uid
+        && (
+          request.resource.data.groupId == null
+          || isGroupMember(get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data)
+        );
+    }
+
     match /users/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create: if isSignedIn() && request.auth.uid == uid;
@@ -131,7 +149,16 @@ service cloud.firestore {
           request.resource.data.groupId == null
           || isGroupMember(get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data)
         );
-      allow update, delete: if canAccessList(resource.data);
+      // ownerId is pinned on every update: a list's owner decides who it is
+      // shared with, so a member being able to rewrite that field would be a way
+      // around the share rule below.
+      allow update: if canAccessList(resource.data)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && (
+          request.resource.data.groupId == resource.data.groupId
+          || isValidShareChange()
+        );
+      allow delete: if canAccessList(resource.data);
 
       match /items/{itemId} {
         allow read, write: if canAccessList(get(/databases/$(database)/documents/lists/$(listId)).data);

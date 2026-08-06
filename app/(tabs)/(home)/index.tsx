@@ -7,7 +7,11 @@ import { useKeyboardInset } from '../../../src/hooks/useKeyboardInset';
 import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../src/utils/keyboardAvoiding';
 import { useLists } from '../../../src/hooks/useLists';
 import { useGroups } from '../../../src/hooks/useGroups';
+import { useSharedLists } from '../../../src/hooks/useSharedLists';
+import { useHomeScopes, PERSONAL_SCOPE } from '../../../src/hooks/useHomeScopes';
+import { useShareFlow } from '../../../src/hooks/useShareFlow';
 import { leaveGroup } from '../../../src/services/groups';
+import { unshareList } from '../../../src/services/sharing';
 import { useDefaultList } from '../../../src/hooks/useQuickAdd';
 import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
 import { useNetworkStatus } from '../../../src/hooks/useNetworkStatus';
@@ -17,6 +21,8 @@ import { GroupRow } from '../../../src/components/GroupRow';
 import { ItemRow } from '../../../src/components/ItemRow';
 import { SectionHeaderRow } from '../../../src/components/SectionHeaderRow';
 import { ItemNameInput } from '../../../src/components/ItemNameInput';
+import { ScopeSelector } from '../../../src/components/ScopeSelector';
+import { ShareHeaderButton } from '../../../src/components/ShareHeaderButton';
 import { PromptDialog } from '../../../src/components/PromptDialog';
 import { ConfirmDialog } from '../../../src/components/ConfirmDialog';
 import { HamburgerButton } from '../../../src/components/HamburgerButton';
@@ -28,9 +34,19 @@ export default function ListsOverviewScreen() {
   const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
   const { isConnected } = useNetworkStatus();
   const user = useAuthStore((state) => state.user);
-  const { listId: defaultListId, ensureListId } = useDefaultList();
+  const { listId: personalListId, ensureListId: ensurePersonalListId } = useDefaultList();
   const { lists: allLists, loading, createList, renameList, deleteList } = useLists();
   const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
+
+  // Lists that reached me through a group. Kept apart from `allLists` (which
+  // stays strictly personal) so it stays obvious which ones are not mine alone.
+  const sharedLists = useSharedLists(groups);
+  const { scopes, selected, select, listIdsInScopes } = useHomeScopes(
+    groups,
+    sharedLists,
+    personalListId,
+    ensurePersonalListId
+  );
 
   const {
     scrollViewRef,
@@ -49,21 +65,33 @@ export default function ListsOverviewScreen() {
     checkedCount,
     checkItem,
     dialogs: itemDialogs,
-  } = useItemsPanel(defaultListId, ensureListId);
+  } = useItemsPanel(selected.listId, selected.ensureListId);
 
-  // The hidden quick-add list (once it exists) is never shown in "Saját listáim" —
-  // its items surface directly up here instead.
-  const lists = allLists.filter((l) => l.id !== defaultListId);
+  const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow();
+
+  // Every list that has a row of its own: my private ones plus the shared ones.
+  // A scope's own list is excluded — its items are already shown in full below,
+  // so a row pointing at the same thing would just be a second door.
+  const listRows: ShoppingList[] = [
+    ...allLists.filter((list) => list.id !== personalListId),
+    ...sharedLists.filter((list) => !listIdsInScopes.has(list.id)),
+  ];
+
+  const groupNameFor = (list: ShoppingList) =>
+    list.groupId ? (groups.find((group) => group.id === list.groupId)?.name ?? 'Csoport') : null;
 
   const [creatingList, setCreatingList] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [renamingList, setRenamingList] = useState<ShoppingList | null>(null);
   const [deletingList, setDeletingList] = useState<ShoppingList | null>(null);
+  const [unsharingList, setUnsharingList] = useState<ShoppingList | null>(null);
   const [renamingGroup, setRenamingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
   const [enteringCode, setEnteringCode] = useState(false);
   const [leavingGroup, setLeavingGroup] = useState<Group | null>(null);
-  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const isPersonalScope = selected.key === PERSONAL_SCOPE;
 
   return (
     <KeyboardAvoidingView
@@ -75,17 +103,40 @@ export default function ListsOverviewScreen() {
         options={{
           title: 'PickIt',
           headerLeft: () => <HamburgerButton />,
-          // Guests get a way in from the main screen; signed-in users already
-          // have their account under the hamburger and in Beállítások.
-          headerRight: user
-            ? undefined
-            : () => (
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              {/* Shown to guests too, on purpose: the point of the button is to
+                  make sharing discoverable, and the flow explains that it needs
+                  an account rather than the button hiding the feature. */}
+              <ShareHeaderButton
+                label="Megosztás"
+                onPress={() => {
+                  // Already shared: the button opens the group it belongs to,
+                  // which is where the members and the rest of its lists are.
+                  if (!isPersonalScope && selected.groupId) {
+                    openGroup(selected.groupId);
+                    return;
+                  }
+                  requestShare({
+                    listId: selected.listId,
+                    ensureListId: selected.ensureListId,
+                    asMain: true,
+                    what: 'a bevásárlólistád',
+                  });
+                }}
+              />
+              {user ? null : (
                 <Pressable style={styles.signInButton} onPress={() => router.push('/sign-in')} hitSlop={8}>
                   <Text style={styles.signInLabel}>Belépés</Text>
                 </Pressable>
-              ),
+              )}
+            </View>
+          ),
         }}
       />
+
+      {/* Invisible until there is more than one shopping list to be looking at. */}
+      <ScopeSelector scopes={scopes} selectedKey={selected.key} onSelect={select} />
 
       {recentPurchaseBanners}
 
@@ -99,7 +150,10 @@ export default function ListsOverviewScreen() {
               </Pressable>
             </View>
             {groups.length === 0 ? (
-              <Text style={styles.sectionEmptyText}>Még nem vagy tagja egyetlen csoportnak sem.</Text>
+              <Text style={styles.sectionEmptyText}>
+                Még nem osztottál meg semmit. A fenti Megosztás gombbal a bevásárlólistádat
+                oszthatod meg, egy-egy listát pedig a saját képernyőjén.
+              </Text>
             ) : (
               groups.map((group) => (
                 <GroupRow
@@ -131,21 +185,29 @@ export default function ListsOverviewScreen() {
         ) : null}
 
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeaderInline}>Saját listáim és tételeim</Text>
+          <Text style={styles.sectionHeaderInline}>Listáim</Text>
           <Pressable onPress={() => setCreatingList(true)} hitSlop={8}>
             <Text style={styles.sectionAction}>+ Új lista</Text>
           </Pressable>
         </View>
         {!loading &&
-          lists.map((item) => (
+          listRows.map((item) => (
             <ListRow
               key={item.id}
               list={item}
+              sharedWith={groupNameFor(item)}
               onPress={() => router.push(`/list/${item.id}`)}
               onRenameRequest={() => setRenamingList(item)}
               onDeleteRequest={() => setDeletingList(item)}
+              onUnshareRequest={() => setUnsharingList(item)}
             />
           ))}
+
+        {/* Naming the list the items belong to matters once there is more than
+            one: the input at the bottom writes into whichever is selected. */}
+        <SectionHeaderRow
+          title={isPersonalScope ? 'Bevásárlólistám' : `${selected.label} — bevásárlólista`}
+        />
 
         {sections.map((section) => (
           <Fragment key={section.title ?? 'active'}>
@@ -174,10 +236,16 @@ export default function ListsOverviewScreen() {
       </ScrollView>
 
       <View ref={keyboardRef} collapsable={false}>
-        <ItemNameInput listId={defaultListId} onSubmit={handleAdd} excludeIds={existingItemIds} />
+        <ItemNameInput
+          listId={selected.listId}
+          groupId={selected.groupId}
+          onSubmit={handleAdd}
+          excludeIds={existingItemIds}
+        />
       </View>
 
       {itemDialogs}
+      {shareDialogs}
 
       <PromptDialog
         visible={enteringCode}
@@ -226,13 +294,37 @@ export default function ListsOverviewScreen() {
       <ConfirmDialog
         visible={!!deletingList}
         title="Lista törlése"
-        message={`Biztosan törlöd: "${deletingList?.name}"? Ez az összes tételt is törli.`}
+        message={
+          deletingList && groupNameFor(deletingList)
+            ? `Biztosan törlöd: "${deletingList?.name}"? Ez az összes tételt is törli, a(z) "${groupNameFor(deletingList)}" minden tagjánál.`
+            : `Biztosan törlöd: "${deletingList?.name}"? Ez az összes tételt is törli.`
+        }
         confirmLabel="Törlés"
         destructive
         onCancel={() => setDeletingList(null)}
         onConfirm={() => {
           if (deletingList) deleteList(deletingList.id);
           setDeletingList(null);
+        }}
+      />
+
+      {/* The way back out of a share that doesn't destroy anything: the list
+          becomes private again and keeps every item on it. */}
+      <ConfirmDialog
+        visible={!!unsharingList}
+        title="Megosztás megszüntetése"
+        message={`"${unsharingList?.name}" újra csak a tiéd lesz — a többi tag nem fogja látni. A tételek megmaradnak.`}
+        confirmLabel="Megszüntetem"
+        destructive
+        onCancel={() => setUnsharingList(null)}
+        onConfirm={() => {
+          const list = unsharingList;
+          setUnsharingList(null);
+          if (list) {
+            unshareList(list.id).catch((e: any) =>
+              setActionError(e?.message ?? 'Nem sikerült megszüntetni a megosztást.')
+            );
+          }
         }}
       />
 
@@ -266,25 +358,25 @@ export default function ListsOverviewScreen() {
           setLeavingGroup(null);
           if (!group || !isConnected) return;
           leaveGroup(group.id).catch((e: any) =>
-            setLeaveError(e?.message ?? 'Nem sikerült kilépni a csoportból.')
+            setActionError(e?.message ?? 'Nem sikerült kilépni a csoportból.')
           );
         }}
       />
 
       <ConfirmDialog
-        visible={!!leaveError}
-        title="Nem sikerült kilépni"
-        message={leaveError ?? ''}
+        visible={!!actionError}
+        title="Nem sikerült"
+        message={actionError ?? ''}
         confirmLabel="Értem"
         hideCancel
-        onCancel={() => setLeaveError(null)}
-        onConfirm={() => setLeaveError(null)}
+        onCancel={() => setActionError(null)}
+        onConfirm={() => setActionError(null)}
       />
 
       <ConfirmDialog
         visible={!!deletingGroup}
         title="Csoport törlése"
-        message={`Biztosan törlöd a(z) "${deletingGroup?.name}" csoportot? Ez minden tagnál törli a csoport összes listáját és tételét.`}
+        message={`Biztosan törlöd a(z) "${deletingGroup?.name}" csoportot? A saját listáid megmaradnak, csak újra privátak lesznek. A többi tag által megosztott listák viszont eltűnnek.`}
         confirmLabel="Törlés"
         destructive
         onCancel={() => setDeletingGroup(null)}
@@ -311,6 +403,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 16,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   signInButton: {
     backgroundColor: '#4A90D9',
     borderRadius: 8,
@@ -330,16 +427,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 6,
   },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#888',
-    textTransform: 'uppercase',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 6,
-  },
-  // Same look as sectionHeader but without horizontal padding, because its
+  // Same look as a section header but without horizontal padding, because its
   // parent (sectionHeaderRow) already provides the 20px inset — so the header
   // text lines up with the rows below instead of sitting further in.
   sectionHeaderInline: {

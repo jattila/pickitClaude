@@ -42,6 +42,16 @@ export interface Group {
   name: string;
   ownerId: string;
   memberIds: string[];
+  /**
+   * The group's "whole shopping list" — the one that surfaces inline on every
+   * member's home screen rather than as a row among the others.
+   *
+   * Set when someone shares their main list; null when the group was formed by
+   * sharing a single list (a party list, say), which belongs among the rows.
+   * Absent on groups created before sharing existed, and those fall back to the
+   * deterministic `gdefault_` list, so nothing pre-existing changes shape.
+   */
+  mainListId: string | null;
   createdAt: number;
   updatedAt: number;
 }

@@ -160,7 +160,13 @@ export default function GroupMembersScreen() {
                     style={styles.memberRow}
                     // Long-press to withdraw, matching how the rest of this app
                     // hides destructive actions behind a deliberate gesture.
-                    onLongPress={isOwner ? () => setPendingRevoke(invite) : undefined}
+                    // Open to whoever sent it as well as the owner: any member
+                    // can invite, so any member can mistype an address.
+                    onLongPress={
+                      isOwner || (!!currentUid && invite.createdBy === currentUid)
+                        ? () => setPendingRevoke(invite)
+                        : undefined
+                    }
                     delayLongPress={350}
                   >
                     <View style={styles.memberTextColumn}>

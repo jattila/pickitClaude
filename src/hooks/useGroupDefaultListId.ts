@@ -6,13 +6,16 @@ import { getExistingGroupDefaultListId, getOrCreateGroupDefaultList } from '../s
  * member actually adds the first loose item — opening/joining the group never
  * creates a stray "Bevásárlólista".
  */
-export function useGroupDefaultList(groupId: string) {
+export function useGroupDefaultList(groupId: string, mainListId: string | null = null) {
   const [listId, setListId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setListId(null);
-    getExistingGroupDefaultListId(groupId)
+    // mainListId arrives a beat after the screen mounts (it comes from the
+    // groups listener), so this reruns when it lands — otherwise a group formed
+    // by sharing would keep resolving the empty `gdefault_` list instead.
+    getExistingGroupDefaultListId(groupId, mainListId)
       .then((id) => {
         if (!cancelled) setListId(id);
       })
@@ -22,13 +25,13 @@ export function useGroupDefaultList(groupId: string) {
     return () => {
       cancelled = true;
     };
-  }, [groupId]);
+  }, [groupId, mainListId]);
 
   const ensureListId = useCallback(async () => {
-    const list = await getOrCreateGroupDefaultList(groupId);
+    const list = await getOrCreateGroupDefaultList(groupId, mainListId);
     setListId(list.id);
     return list.id;
-  }, [groupId]);
+  }, [groupId, mainListId]);
 
   return { listId, ensureListId };
 }

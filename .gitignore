@@ -53,3 +53,6 @@ firebase-debug.*.log
 # Session transcript export — a local record of the prompts behind this
 # codebase, regenerable from the Claude Code log. Not part of the app.
 pickit-full-prompts.md
+
+# JetBrains IDE workspace — per-machine editor state, not project config.
+.idea/

@@ -31,6 +31,7 @@ function toGroup(snap: QueryDocumentSnapshot<DocumentData>): Group {
     name: data.name,
     ownerId: data.ownerId,
     memberIds: data.memberIds ?? [],
+    mainListId: data.mainListId ?? null,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
   };
@@ -48,7 +49,12 @@ function toGroupMember(snap: QueryDocumentSnapshot<DocumentData>): GroupMember {
   };
 }
 
-export async function createGroup(name: string): Promise<Group> {
+/**
+ * `mainListId` names the list that is this group's whole shopping list — the one
+ * that shows up inline on members' home screens. Left null when the group exists
+ * to share one particular list, which belongs among the rows instead.
+ */
+export async function createGroup(name: string, mainListId: string | null = null): Promise<Group> {
   const uid = requireUid();
   const now = Date.now();
   const groupRef = doc(collection(firestore, 'groups'));
@@ -62,6 +68,7 @@ export async function createGroup(name: string): Promise<Group> {
     name: name.trim(),
     ownerId: uid,
     memberIds: [uid],
+    mainListId,
     createdAt: now,
     updatedAt: now,
   });
@@ -79,6 +86,7 @@ export async function createGroup(name: string): Promise<Group> {
     name: name.trim(),
     ownerId: uid,
     memberIds: [uid],
+    mainListId,
     createdAt: now,
     updatedAt: now,
   };
@@ -90,8 +98,17 @@ export async function renameGroup(groupId: string, name: string): Promise<void> 
 
 const BATCH_LIMIT = 400; // stay comfortably under Firestore's 500-write batch cap
 
-/** Owner-only: deletes the group, its members, and every one of its lists (with their items). */
+/**
+ * Owner-only: deletes the group, its members, and its lists.
+ *
+ * Lists the caller owns are the exception — they are returned to private rather
+ * than deleted. Since lists can now be shared *into* a group, a list here may
+ * well have started as your own shopping list and be full of your items;
+ * deleting the group is a statement about who can see it, not a request to
+ * throw it away.
+ */
 export async function deleteGroup(groupId: string): Promise<void> {
+  const uid = requireUid();
   let batch = writeBatch(firestore);
   let opCount = 0;
   const queue = async (fn: () => void) => {
@@ -106,6 +123,10 @@ export async function deleteGroup(groupId: string): Promise<void> {
 
   const listsSnap = await getDocs(query(collection(firestore, 'lists'), where('groupId', '==', groupId)));
   for (const listDoc of listsSnap.docs) {
+    if ((listDoc.data() as DocumentData).ownerId === uid) {
+      await queue(() => batch.update(listDoc.ref, { groupId: null, updatedAt: Date.now() }));
+      continue;
+    }
     const itemsSnap = await getDocs(collection(firestore, 'lists', listDoc.id, 'items'));
     for (const itemDoc of itemsSnap.docs) {
       await queue(() => batch.delete(itemDoc.ref));
@@ -155,9 +176,11 @@ export interface PendingInvite {
   email: string;
   status: PendingInviteStatus;
   createdAt: number;
+  /** Null on invites created before this was recorded. */
+  createdBy: string | null;
 }
 
-/** Owner-only. Withdraws an invite that hasn't been redeemed yet. */
+/** The sender or the group's owner. Withdraws an invite that hasn't been redeemed yet. */
 export async function revokeInvite(code: string): Promise<void> {
   const call = httpsCallable<{ code: string }, { revoked: boolean }>(functions, 'revokeInvite');
   await call({ code });
@@ -260,14 +283,55 @@ export function subscribeGroupLists(
   return watchQuery(q, (snap) => snap.docs.map(toGroupList), onChange, []);
 }
 
+/**
+ * Firestore's cap on values in an `in` filter. A member of more than this many
+ * groups is not a case worth a second query — the overflow simply doesn't show,
+ * and the group's own screen still reaches its lists.
+ */
+const IN_FILTER_LIMIT = 30;
+
+/**
+ * Every list from every group I belong to, in a single listener.
+ *
+ * One `in` query rather than one listener per group: each listener is its own
+ * standing cost, and the home screen now shows shared lists alongside personal
+ * ones, so this runs for the whole session on the app's busiest screen.
+ */
+export function subscribeListsForGroups(
+  groupIds: string[],
+  onChange: (lists: ShoppingList[]) => void
+): () => void {
+  if (groupIds.length === 0) {
+    onChange([]);
+    return () => undefined;
+  }
+  const q = query(
+    collection(firestore, 'lists'),
+    where('groupId', 'in', groupIds.slice(0, IN_FILTER_LIMIT)),
+    orderBy('updatedAt', 'desc')
+  );
+  return watchQuery(q, (snap) => snap.docs.map(toGroupList), onChange, []);
+}
+
 /** Deterministic doc id for a group's hidden "loose items" list, so concurrent
  * first-opens by different members resolve the same list instead of duplicating. */
 function groupDefaultListId(groupId: string): string {
   return `gdefault_${groupId}`;
 }
 
-/** Returns the group's shared quick-add list id only if it already exists (never creates). */
-export async function getExistingGroupDefaultListId(groupId: string): Promise<string | null> {
+/**
+ * Returns the group's shared quick-add list id only if it already exists (never creates).
+ *
+ * A group formed by sharing someone's main list already has one — `mainListId` —
+ * and it is a normal list with a random id, not the deterministic `gdefault_`
+ * one. Passing it in short-circuits the lookup; leaving it out keeps the
+ * original behaviour for groups created before sharing existed.
+ */
+export async function getExistingGroupDefaultListId(
+  groupId: string,
+  mainListId: string | null = null
+): Promise<string | null> {
+  if (mainListId) return mainListId;
   const ref = doc(firestore, 'lists', groupDefaultListId(groupId));
   // Offline with nothing cached, getDoc() throws rather than resolving "absent";
   // reporting no list would strand the group's quick-add, so assume it exists —
@@ -281,13 +345,23 @@ export async function getExistingGroupDefaultListId(groupId: string): Promise<st
  * default list it's never shown in the group's list section — its items surface
  * directly on the group screen so members can jot loose items without picking a list.
  */
-export async function getOrCreateGroupDefaultList(groupId: string): Promise<ShoppingList> {
+export async function getOrCreateGroupDefaultList(
+  groupId: string,
+  mainListId: string | null = null
+): Promise<ShoppingList> {
   const uid = requireUid();
-  const ref = doc(firestore, 'lists', groupDefaultListId(groupId));
+  const ref = doc(firestore, 'lists', mainListId ?? groupDefaultListId(groupId));
   const snap = await getDoc(ref).catch(() => null);
   if (snap?.exists()) {
     const data = snap.data() as DocumentData;
     return { id: ref.id, name: data.name, groupId, createdAt: data.createdAt, updatedAt: data.updatedAt };
+  }
+  // A named mainListId is a list that demonstrably exists — someone shared it to
+  // form this group. Falling through to the blind write below would overwrite a
+  // real list with an empty "Bevásárlólista", so hand back the id and let the
+  // caller work against it; offline writes to its items queue up as usual.
+  if (mainListId) {
+    return { id: mainListId, name: 'Bevásárlólista', groupId, createdAt: 0, updatedAt: 0 };
   }
   // Safe to write blind when the read failed (offline): the id is derived from
   // the group id, so this converges on the same doc instead of duplicating.

@@ -7,15 +7,25 @@ import { useKeyboardInset } from '../../../../src/hooks/useKeyboardInset';
 import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../../src/utils/keyboardAvoiding';
 import { useListMeta } from '../../../../src/hooks/useListMeta';
 import { useItemsPanel } from '../../../../src/hooks/useItemsPanel';
+import { useGroups } from '../../../../src/hooks/useGroups';
+import { useShareFlow } from '../../../../src/hooks/useShareFlow';
 import { ItemRow } from '../../../../src/components/ItemRow';
 import { SectionHeaderRow } from '../../../../src/components/SectionHeaderRow';
 import { ItemNameInput } from '../../../../src/components/ItemNameInput';
+import { ShareHeaderButton } from '../../../../src/components/ShareHeaderButton';
 
 export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
   const list = useListMeta(listId);
   const headerHeight = useHeaderHeight();
   const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
+  const { groups } = useGroups();
+  const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow();
+
+  // This is the entry point for the party case: make a list, then decide who it
+  // is for. Once shared, the same button turns into the way to reach the people
+  // it is shared with — the button's job is "who can see this", either way.
+  const sharedGroup = list?.groupId ? groups.find((group) => group.id === list.groupId) : null;
 
   const {
     scrollViewRef,
@@ -42,7 +52,29 @@ export default function ListDetailScreen() {
       behavior={keyboardAvoidingBehavior}
       keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
     >
-      <Stack.Screen options={{ title: list?.name ?? 'Lista' }} />
+      <Stack.Screen
+        options={{
+          title: list?.name ?? 'Lista',
+          headerRight: () => (
+            <ShareHeaderButton
+              label="Megosztás"
+              onPress={() => {
+                if (list?.groupId) openGroup(list.groupId);
+                else
+                  requestShare({
+                    listId,
+                    asMain: false,
+                    what: `"${list?.name ?? 'ez a lista'}"`,
+                  });
+              }}
+            />
+          ),
+        }}
+      />
+
+      {sharedGroup ? (
+        <Text style={styles.sharedBanner}>Megosztva · {sharedGroup.name}</Text>
+      ) : null}
 
       {recentPurchaseBanners}
 
@@ -92,6 +124,7 @@ export default function ListDetailScreen() {
       </View>
 
       {dialogs}
+      {shareDialogs}
     </KeyboardAvoidingView>
   );
 }
@@ -118,6 +151,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 6,
+  },
+  // A quiet strip rather than a badge in the title: on a shared list every tick
+  // and every added item is visible to other people, and that is worth stating
+  // plainly on the screen where the typing happens.
+  sharedBanner: {
+    fontSize: 12,
+    color: '#4A90D9',
+    backgroundColor: '#EAF2FB',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
   },
   emptyState: {
     flex: 1,

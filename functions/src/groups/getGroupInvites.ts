@@ -10,6 +10,7 @@ interface InviteDoc {
   invitedEmail?: string;
   expiresAt?: number;
   createdAt?: number;
+  createdBy?: string;
   revoked?: boolean;
 }
 
@@ -71,7 +72,15 @@ export const getGroupInvites = onCall(async (request) => {
           .then((user) => (user.emailVerified ? 'invited' : 'awaiting-verification'))
           .catch(() => 'invited' as const);
 
-        return { code: invite.code, email: invite.invitedEmail, status, createdAt: invite.createdAt ?? 0 };
+        // createdBy travels with the invite so the member list can show the
+        // withdraw action to whoever sent it, not just to the owner.
+        return {
+          code: invite.code,
+          email: invite.invitedEmail,
+          status,
+          createdAt: invite.createdAt ?? 0,
+          createdBy: invite.createdBy ?? null,
+        };
       })
   );
 

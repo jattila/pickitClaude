@@ -292,3 +292,59 @@ csomagból, amelyik a `RCTBridgeModule`-t használja, immár mind a négy patche
 **Tanulság:** a build-összefoglalók hibalistája fájlnév nélkül félrevezető. Egy több
 órás build kilövése előtt **a teljes naplót** kell megnézni — az EAS `logFiles`
 mezőjében elérhető, és letölthető.
+
+---
+
+## A megosztás megfordítása: a lista kap közönséget, nem a csoport kap listát
+
+**A helyzet:** eddig a csoport volt a tároló. Előbb csoportot hoztál létre, aztán
+azon belül listát. Az `agents4.md` viszont a fordítottját kéri: van egy listád, és
+egy adott ponton eldöntöd, kikkel osztod meg — a csoport neve ekkor születik meg.
+A buli-példa ezt teszi egyértelművé: „lehessen listát létrehozni, amit a résztvevők
+között meg lehet osztani".
+
+**Amihez nem kellett hozzányúlni:** az adatmodellhez. A `lists.groupId` már eddig is
+pontosan azt jelentette, hogy „kikkel van megosztva", `null` = privát. Megosztani
+tehát egyetlen mező átírása. A séma megtartása azt is jelenti, hogy a régi csoportok
+változatlanul működnek.
+
+**Az egyetlen új mező:** `groups.mainListId`. Ez választja szét a két megosztási
+módot anélkül, hogy két mechanizmus kellene hozzá:
+
+- a **fő bevásárlólistát** osztod meg → `mainListId` beáll → minden tag főképernyőjén
+  beszúrt listaként jelenik meg;
+- egy **külön listát** osztasz meg → `mainListId` marad `null` → a lista sorként
+  jelenik meg a többi között, „megosztva · Csoport" jelzéssel.
+
+Hiányzó mező esetén marad a régi, determinisztikus `gdefault_` feloldás, tehát a
+korábban létrehozott csoportok alakja nem változik.
+
+**Miért fülek, és nem egymás alatt felsorolt listák:** a főképernyőn egyetlen
+beviteli sor van. Ha több lista tételei egyszerre látszanának, a beírt tétel célja
+kétértelmű lenne. A `ScopeSelector` ezt teszi kimondottá — és egyetlen listánál nem
+jelenik meg egyáltalán, tehát aki nem oszt meg semmit, ugyanazt a képernyőt látja,
+mint eddig.
+
+**Két csapda, amit menet közben kellett befoltozni:**
+
+1. *A lista kétszer jelent volna meg.* A profil `defaultListId`-je a megosztás után
+   is a most elajándékozott listára mutatott, így az „Saját" és a csoport füle alatt
+   is ugyanaz a lista állt volna, és mindkettő bele is írt volna. A megosztás ezért
+   nullázza a `defaultListId`-t: a privát lista újra üresen indul, az elsőt felvett
+   tételkor jön létre.
+2. *A csoport törlése adatvesztés lett volna.* Eddig a `deleteGroup` a csoport
+   minden listáját törölte — ez helyes volt, amíg a listák a csoporton belül
+   születtek. Most viszont a saját bevásárlólistád is lehet köztük. A törlés ezért
+   a saját listáidat visszaállítja privátra, ahelyett hogy törölné őket.
+
+**Biztonsági szabály:** a `groupId` átírása az egyetlen módosítás, ami *tágítja* a
+lista láthatóságát, ezért külön feltételeket kapott. Csak a tulajdonos teheti — egy
+megosztott lista minden tagja szerkesztheti a listát, és nélküle bármelyikük
+továbbadhatná egy olyan körnek, amihez a tulajdonos nem járult hozzá. A cél csoportnak
+ráadásul tagja kell legyen a hívó, így listát nem lehet olyan csoportba tolni, ahol a
+hívó nincs bent. Az `ownerId` minden módosításnál rögzített, különben ez megkerülhető
+lenne.
+
+**Meghívó visszavonása:** kibővítve a meghívó küldőjére. Meghívni eddig is bármelyik
+tag tudott (`createInvite` a `memberIds`-t nézi), visszavonni viszont csak a
+tulajdonos — így aki elgépelt egy címet, egy hetet várhatott a lejáratra.

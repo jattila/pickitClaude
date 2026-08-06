@@ -28,7 +28,7 @@ export default function GroupListsScreen() {
   const { groups } = useGroups();
   const group = groups.find((g) => g.id === groupId);
 
-  const { listId: defaultListId, ensureListId } = useGroupDefaultList(groupId);
+  const { listId: defaultListId, ensureListId } = useGroupDefaultList(groupId, group?.mainListId ?? null);
   const {
     scrollViewRef,
     sections,
@@ -48,9 +48,13 @@ export default function GroupListsScreen() {
     dialogs: itemDialogs,
   } = useItemsPanel(defaultListId, ensureListId);
 
-  // The shared quick-add list is hidden from the group's list section — its
-  // items surface directly below instead.
-  const lists = allLists.filter((l) => !isGroupDefaultList(groupId, l.id));
+  // The group's whole shopping list is hidden from the list section — its items
+  // surface directly below instead. That is either the list someone shared into
+  // the group, or (for groups predating sharing) the deterministic loose-items
+  // list.
+  const lists = allLists.filter(
+    (l) => !isGroupDefaultList(groupId, l.id) && l.id !== group?.mainListId
+  );
 
   const [creating, setCreating] = useState(false);
   const [renamingList, setRenamingList] = useState<ShoppingList | null>(null);
