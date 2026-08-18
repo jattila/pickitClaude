@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
-import { doc, setDoc } from '@react-native-firebase/firestore';
+import { doc, updateDoc } from '@react-native-firebase/firestore';
 import { firestore } from '../services/firebase';
 import { useAuthStore } from '../store/authStore';
+import { useUiStore } from '../store/uiStore';
 
 /** How far ahead each heartbeat claims the user is present. */
 const PRESENCE_WINDOW_MS = 3 * 60_000;
@@ -22,13 +23,23 @@ export function usePresence(): void {
   const uid = useAuthStore((state) => state.user?.uid);
   // The heartbeat is a Firestore write, which an unverified account can't make.
   const emailVerified = useAuthStore((state) => state.emailVerified);
+  // Bumped when the account is provisioned. Presence fires the instant an email
+  // is verified, which is *before* the profile document exists, so the first
+  // heartbeat has nothing to write to — this brings it back once there is.
+  const dataRevision = useUiStore((state) => state.dataRevision);
 
   useEffect(() => {
     if (!uid || !emailVerified) return;
     const ref = doc(firestore, 'users', uid);
 
+    // updateDoc, not setDoc with merge: a merge would *create* the profile
+    // document holding nothing but this heartbeat. Account setup treats an
+    // existing document as an account that has already been through
+    // provisioning, so that phantom made it skip migrating the phone's guest
+    // list — and the list silently vanished. Failing until the profile exists is
+    // the correct behaviour here; presence is best-effort by nature.
     const publish = (present: boolean) => {
-      setDoc(ref, { activeUntil: present ? Date.now() + PRESENCE_WINDOW_MS : 0 }, { merge: true }).catch(
+      updateDoc(ref, { activeUntil: present ? Date.now() + PRESENCE_WINDOW_MS : 0 }).catch(
         () => undefined
       );
     };
@@ -45,5 +56,5 @@ export function usePresence(): void {
       subscription.remove();
       publish(false);
     };
-  }, [uid, emailVerified]);
+  }, [uid, emailVerified, dataRevision]);
 }

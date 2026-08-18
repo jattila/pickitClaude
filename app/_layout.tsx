@@ -9,6 +9,7 @@ import { NoticeDialog } from "../src/components/NoticeDialog";
 import { EmailVerificationGate } from "../src/components/EmailVerificationGate";
 import { useAuthStore } from "../src/store/authStore";
 import { usePushRegistration } from "../src/hooks/usePushRegistration";
+import { useAccountProvisioning } from "../src/hooks/useAccountProvisioning";
 import { useReturnHomeOnSignOut } from "../src/hooks/useReturnHomeOnSignOut";
 import { usePresence } from "../src/hooks/usePresence";
 import { useScreenTracking } from "../src/hooks/useScreenTracking";
@@ -48,6 +49,11 @@ function AppNavigator() {
         screenOptions={{
           headerTitleAlign: "center",
           headerShown: false,
+          // iOS labels the back button with the previous screen's title, and
+          // `(tabs)` has none — so it fell back to the route name and printed
+          // "(tabs)" on every screen pushed from a tab. Set here rather than per
+          // screen: it covers all four of them, and any route added later.
+          headerBackButtonDisplayMode: "minimal",
         }}
       >
         <Stack.Screen
@@ -73,6 +79,7 @@ function AppNavigator() {
 }
 
 export default function RootLayout() {
+  useAccountProvisioning();
   usePushRegistration();
   useReturnHomeOnSignOut();
   usePresence();

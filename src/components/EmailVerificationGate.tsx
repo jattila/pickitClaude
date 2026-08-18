@@ -7,6 +7,7 @@ import { refreshEmailVerified, useAuthStore } from '../store/authStore';
 import { provisionVerifiedAccount } from '../services/provisioning';
 import { signOutFully } from '../services/session';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useHasLocalData } from '../hooks/useHasLocalData';
 
 /**
  * Stands in for the whole app while a signed-in user's email is unconfirmed.
@@ -20,6 +21,7 @@ export function EmailVerificationGate() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const { isConnected } = useNetworkStatus();
+  const hasGuestList = useHasLocalData();
   const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -76,6 +78,17 @@ export function EmailVerificationGate() {
         biztonságban legyenek, és csak valódi fiókok férjenek hozzá.
       </Text>
 
+      {/* This screen replaces the whole app, so someone who had a guest list is
+          suddenly looking at a wall of text where their shopping list used to
+          be. Nothing has happened to it — the migration has not even run yet —
+          but that needs saying, along with the way back. */}
+      {hasGuestList ? (
+        <Text style={styles.reassurance}>
+          A mostani bevásárlólistád a telefonon van, biztonságban. A megerősítés után kerül a
+          felhőbe. Ha most kijelentkezel, azonnal visszakapod.
+        </Text>
+      ) : null}
+
       {!isConnected ? (
         <Text style={styles.error}>Nincs internetkapcsolat — az ellenőrzéshez kapcsolat kell.</Text>
       ) : null}
@@ -125,6 +138,14 @@ const styles = StyleSheet.create({
   email: {
     fontWeight: '600',
     color: '#333',
+  },
+  reassurance: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#3D6B3D',
+    backgroundColor: '#EFF6EF',
+    borderRadius: 8,
+    padding: 12,
   },
   notice: {
     color: '#4A7A4A',

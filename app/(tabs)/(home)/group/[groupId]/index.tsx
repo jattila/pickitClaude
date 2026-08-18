@@ -13,6 +13,7 @@ import { ListRow } from '../../../../../src/components/ListRow';
 import { ItemRow } from '../../../../../src/components/ItemRow';
 import { SectionHeaderRow } from '../../../../../src/components/SectionHeaderRow';
 import { ItemNameInput } from '../../../../../src/components/ItemNameInput';
+import { HeaderActionButton } from '../../../../../src/components/HeaderActionButton';
 import { PromptDialog } from '../../../../../src/components/PromptDialog';
 import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
 import { FirestoreListsRepository } from '../../../../../src/data/cloud/FirestoreListsRepository';
@@ -73,13 +74,10 @@ export default function GroupListsScreen() {
           // group's catalog while you're inside it, so a third route would only
           // crowd the header.
           headerRight: () => (
-            <Pressable
-              style={styles.shareButton}
+            <HeaderActionButton
+              label="Megosztás"
               onPress={() => router.push(`/group/${groupId}/members`)}
-              hitSlop={8}
-            >
-              <Text style={styles.shareLabel}>Megosztás</Text>
-            </Pressable>
+            />
           ),
         }}
       />
@@ -190,19 +188,6 @@ const styles = StyleSheet.create({
   // full height and pushes the input row out of view instead of moving it up.
   scrollArea: {
     flex: 1,
-  },
-  // Matches the "Belépés" header button on the overview screen, so the two
-  // header actions in the app read as the same kind of control.
-  shareButton: {
-    backgroundColor: '#4A90D9',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  shareLabel: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
   },
   scrollContent: {
     paddingBottom: 16,

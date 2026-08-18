@@ -16,13 +16,17 @@ import { useDefaultList } from '../../../src/hooks/useQuickAdd';
 import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
 import { useNetworkStatus } from '../../../src/hooks/useNetworkStatus';
 import { useAuthStore } from '../../../src/store/authStore';
+import { useHadAccountHere } from '../../../src/hooks/useHadAccountHere';
+import { useUiStore } from '../../../src/store/uiStore';
 import { ListRow } from '../../../src/components/ListRow';
 import { GroupRow } from '../../../src/components/GroupRow';
 import { ItemRow } from '../../../src/components/ItemRow';
 import { SectionHeaderRow } from '../../../src/components/SectionHeaderRow';
 import { ItemNameInput } from '../../../src/components/ItemNameInput';
 import { ScopeSelector } from '../../../src/components/ScopeSelector';
-import { ShareHeaderButton } from '../../../src/components/ShareHeaderButton';
+import { HomeTips } from '../../../src/components/HomeTips';
+import { GuestListNotices } from '../../../src/components/GuestListNotices';
+import { HeaderActionButton } from '../../../src/components/HeaderActionButton';
 import { PromptDialog } from '../../../src/components/PromptDialog';
 import { ConfirmDialog } from '../../../src/components/ConfirmDialog';
 import { HamburgerButton } from '../../../src/components/HamburgerButton';
@@ -69,6 +73,20 @@ export default function ListsOverviewScreen() {
 
   const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow();
 
+  // A phone that has had an account on it before is almost certainly the same
+  // person coming back, and their list is already in the cloud — offering them
+  // registration would send them to open a second account beside it.
+  const hadAccountHere = useHadAccountHere();
+  const guestRoute = hadAccountHere ? '/sign-in' : '/sign-up';
+
+  // Both are set elsewhere — a migration finishing in a root hook, a sign-in
+  // completing on another screen — and land here because this is where the
+  // person is looking afterwards.
+  const justMigratedNotice = useUiStore((state) => state.justMigratedNotice);
+  const setJustMigratedNotice = useUiStore((state) => state.setJustMigratedNotice);
+  const localListKeptNotice = useUiStore((state) => state.localListKeptNotice);
+  const setLocalListKeptNotice = useUiStore((state) => state.setLocalListKeptNotice);
+
   // Every list that has a row of its own: my private ones plus the shared ones.
   // A scope's own list is excluded — its items are already shown in full below,
   // so a row pointing at the same thing would just be a second door.
@@ -105,30 +123,38 @@ export default function ListsOverviewScreen() {
           headerLeft: () => <HamburgerButton />,
           headerRight: () => (
             <View style={styles.headerActions}>
-              {/* Shown to guests too, on purpose: the point of the button is to
-                  make sharing discoverable, and the flow explains that it needs
-                  an account rather than the button hiding the feature. */}
-              <ShareHeaderButton
-                label="Megosztás"
-                onPress={() => {
-                  // Already shared: the button opens the group it belongs to,
-                  // which is where the members and the rest of its lists are.
-                  if (!isPersonalScope && selected.groupId) {
-                    openGroup(selected.groupId);
-                    return;
-                  }
-                  requestShare({
-                    listId: selected.listId,
-                    ensureListId: selected.ensureListId,
-                    asMain: true,
-                    what: 'a bevásárlólistád',
-                  });
-                }}
-              />
-              {user ? null : (
-                <Pressable style={styles.signInButton} onPress={() => router.push('/sign-in')} hitSlop={8}>
-                  <Text style={styles.signInLabel}>Belépés</Text>
-                </Pressable>
+              {/* Signed-in only. For a guest this button led straight to a
+                  dialog saying an account is needed — the same thing the notice
+                  above the list now says, so it was a second door to one room.
+                  Signed in it stays: the home screen's own shopping list has no
+                  detail screen of its own, so this is the only way to share it. */}
+              {user ? (
+                <HeaderActionButton
+                  label="Megosztás"
+                  onPress={() => {
+                    // Already shared: the button opens the group it belongs to,
+                    // which is where the members and the rest of its lists are.
+                    if (!isPersonalScope && selected.groupId) {
+                      openGroup(selected.groupId);
+                      return;
+                    }
+                    requestShare({
+                      listId: selected.listId,
+                      ensureListId: selected.ensureListId,
+                      asMain: true,
+                      what: 'a bevásárlólistád',
+                    });
+                  }}
+                />
+              ) : (
+                // Registration by default: someone still using the app as a
+                // guest usually has no account yet. Whichever is not offered
+                // here stays reachable from the menu, from Beállítások, and from
+                // a link at the bottom of each of the two screens.
+                <HeaderActionButton
+                  label={hadAccountHere ? 'Belépés' : 'Regisztráció'}
+                  onPress={() => router.push(guestRoute)}
+                />
               )}
             </View>
           ),
@@ -141,6 +167,20 @@ export default function ListsOverviewScreen() {
       {recentPurchaseBanners}
 
       <ScrollView ref={scrollViewRef} style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+        {/* Gone the moment the list has anything on it. The tips are for the
+            blank screen, and a blank screen stops existing after one item. */}
+        {sections.length === 0 ? <HomeTips showInviteTip={groups.length === 0} /> : null}
+
+        {/* Only once there is a list worth losing. An empty one needs none of
+            this — the tips are showing instead, and they cover the same ground
+            without standing between anyone and their shopping list. */}
+        {!user && sections.length > 0 ? (
+          <GuestListNotices
+            hadAccountHere={hadAccountHere}
+            onPress={() => router.push(guestRoute)}
+          />
+        ) : null}
+
         {user ? (
           <>
             <View style={styles.sectionHeaderRow}>
@@ -204,10 +244,15 @@ export default function ListsOverviewScreen() {
           ))}
 
         {/* Naming the list the items belong to matters once there is more than
-            one: the input at the bottom writes into whichever is selected. */}
-        <SectionHeaderRow
-          title={isPersonalScope ? 'Bevásárlólistám' : `${selected.label} — bevásárlólista`}
-        />
+            one: the input at the bottom writes into whichever is selected. With
+            a single scope and nothing on it, the heading would sit over empty
+            space and label nothing — so it waits until there is something to
+            label, or until there is a choice to disambiguate. */}
+        {sections.length > 0 || scopes.length > 1 ? (
+          <SectionHeaderRow
+            title={isPersonalScope ? 'Bevásárlólistám' : `${selected.label} — bevásárlólista`}
+          />
+        ) : null}
 
         {sections.map((section) => (
           <Fragment key={section.title ?? 'active'}>
@@ -246,6 +291,26 @@ export default function ListsOverviewScreen() {
 
       {itemDialogs}
       {shareDialogs}
+
+      <ConfirmDialog
+        visible={justMigratedNotice}
+        title="A listád a felhőbe került"
+        message="Mostantól bármelyik telefonon eléred, ha bejelentkezel."
+        confirmLabel="Értem"
+        hideCancel
+        onCancel={() => setJustMigratedNotice(false)}
+        onConfirm={() => setJustMigratedNotice(false)}
+      />
+
+      <ConfirmDialog
+        visible={localListKeptNotice}
+        title="A telefonos listád megmarad"
+        message="Most a fiókod listáit látod. Ami ezen a telefonon volt, az érintetlen marad, és kijelentkezés után újra előjön."
+        confirmLabel="Értem"
+        hideCancel
+        onCancel={() => setLocalListKeptNotice(false)}
+        onConfirm={() => setLocalListKeptNotice(false)}
+      />
 
       <PromptDialog
         visible={enteringCode}
@@ -407,17 +472,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  signInButton: {
-    backgroundColor: '#4A90D9',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  signInLabel: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
   },
   sectionHeaderRow: {
     flexDirection: 'row',

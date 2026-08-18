@@ -7,6 +7,8 @@ import { signInWithEmailAndPassword } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
 import { PasswordInput } from '../src/components/PasswordInput';
+import { hasLocalData } from '../src/services/migration';
+import { useUiStore } from '../src/store/uiStore';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -20,7 +22,13 @@ export default function SignInScreen() {
     setError(null);
     setSubmitting(true);
     try {
+      // Asked before signing in, while the local database is still the one the
+      // app is reading. Signing in only ever migrates for a brand-new account,
+      // so anything here is about to drop out of sight — and vanishing without
+      // a word is exactly what looks like data loss.
+      const keptLocalList = await hasLocalData().catch(() => false);
       await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (keptLocalList) useUiStore.getState().setLocalListKeptNotice(true);
       router.replace('/');
     } catch (e: any) {
       setError('Hibás email cím vagy jelszó.');

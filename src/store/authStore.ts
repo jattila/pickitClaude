@@ -43,7 +43,12 @@ export async function refreshEmailVerified(): Promise<boolean> {
   await reload(current);
   await getIdToken(current, true);
 
-  const verified = current.emailVerified;
+  // Read the user again rather than trusting `current`. Each access to
+  // `auth.currentUser` hands back a fresh snapshot of the native state, so the
+  // object captured before `reload` still says what it said then — which is why
+  // the first "Megerősítettem" tap reported failure on an address that had just
+  // been confirmed, and the second one worked without waiting for anything.
+  const verified = auth.currentUser?.emailVerified ?? false;
   useAuthStore.setState({ emailVerified: verified });
   return verified;
 }

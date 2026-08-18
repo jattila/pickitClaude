@@ -134,7 +134,7 @@ export default function SettingsScreen() {
       <ConfirmDialog
         visible={confirmingSignOut}
         title="Kijelentkezés"
-        message="Biztosan kijelentkezel? A listáid és csoportjaid a fiókodban maradnak, de amíg vissza nem lépsz, nem éred el őket ezen a készüléken."
+        message="Biztosan kijelentkezel? A listáid és csoportjaid a fiókodban maradnak, de amíg vissza nem lépsz, nem éred el őket ezen a készüléken. Helyettük ennek a telefonnak a saját, különálló listája jelenik meg."
         confirmLabel="Kijelentkezés"
         destructive
         onCancel={() => setConfirmingSignOut(false)}

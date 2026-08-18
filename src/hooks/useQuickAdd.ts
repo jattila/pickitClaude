@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRepository } from '../data/useRepository';
+import { useUiStore } from '../store/uiStore';
 
 /**
  * Backs the overview screen's quick-add. The hidden default list is NOT created
@@ -9,6 +10,10 @@ import { useRepository } from '../data/useRepository';
  */
 export function useDefaultList() {
   const repo = useRepository();
+  // Signing in swaps the repository, but the migration that follows finishes
+  // *after* that swap — without this the screen would keep the answer it got
+  // mid-migration, which is "you have no list".
+  const dataRevision = useUiStore((state) => state.dataRevision);
   const [listId, setListId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,7 +30,7 @@ export function useDefaultList() {
     return () => {
       cancelled = true;
     };
-  }, [repo]);
+  }, [repo, dataRevision]);
 
   const ensureListId = useCallback(async () => {
     const list = await repo.getOrCreateDefaultList();

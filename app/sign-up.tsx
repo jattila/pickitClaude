@@ -10,11 +10,13 @@ import {
 } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
+import { useHasLocalData } from '../src/hooks/useHasLocalData';
 import { PasswordInput } from '../src/components/PasswordInput';
 
 export default function SignUpScreen() {
   const router = useRouter();
   const { isConnected } = useNetworkStatus();
+  const hasGuestList = useHasLocalData();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,9 +56,17 @@ export default function SignUpScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={keyboardAvoidingBehavior}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Regisztráció</Text>
-        <Text style={styles.subtitle}>
-          A meglévő listáid és tételeid automatikusan átkerülnek a fiókodba.
-        </Text>
+        {/* Only shown to someone who actually has a list to lose. It also names
+            the condition — the move happens at verification, not here — because
+            the app is about to replace itself with the verification screen, and
+            an unexplained promise made one screen too early is what makes that
+            look like the list went missing. */}
+        {hasGuestList ? (
+          <Text style={styles.subtitle}>
+            A most meglévő bevásárlólistád az e-mail megerősítése után felkerül a felhőbe.
+            Onnantól bármelyik telefonon eléred, ha bejelentkezel.
+          </Text>
+        ) : null}
 
         {/* Labelled for autofill. Untagged, Android had to guess which field
             was the account identifier and settled on this one, the first text

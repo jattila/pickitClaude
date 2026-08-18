@@ -12,7 +12,7 @@ import { useShareFlow } from '../../../../src/hooks/useShareFlow';
 import { ItemRow } from '../../../../src/components/ItemRow';
 import { SectionHeaderRow } from '../../../../src/components/SectionHeaderRow';
 import { ItemNameInput } from '../../../../src/components/ItemNameInput';
-import { ShareHeaderButton } from '../../../../src/components/ShareHeaderButton';
+import { HeaderActionButton } from '../../../../src/components/HeaderActionButton';
 
 export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
@@ -56,7 +56,7 @@ export default function ListDetailScreen() {
         options={{
           title: list?.name ?? 'Lista',
           headerRight: () => (
-            <ShareHeaderButton
+            <HeaderActionButton
               label="Megosztás"
               onPress={() => {
                 if (list?.groupId) openGroup(list.groupId);
