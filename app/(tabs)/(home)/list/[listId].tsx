@@ -20,7 +20,7 @@ export default function ListDetailScreen() {
   const headerHeight = useHeaderHeight();
   const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
   const { groups } = useGroups();
-  const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow();
+  const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow(groups);
 
   // This is the entry point for the party case: make a list, then decide who it
   // is for. Once shared, the same button turns into the way to reach the people
@@ -64,7 +64,7 @@ export default function ListDetailScreen() {
                   requestShare({
                     listId,
                     asMain: false,
-                    what: `"${list?.name ?? 'ez a lista'}"`,
+                    listName: list?.name ?? 'Lista',
                   });
               }}
             />

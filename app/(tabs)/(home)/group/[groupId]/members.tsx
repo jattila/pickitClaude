@@ -17,6 +17,7 @@ import { useAuthStore } from '../../../../../src/store/authStore';
 import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
 import { PromptDialog } from '../../../../../src/components/PromptDialog';
 import { useGroupInvites } from '../../../../../src/hooks/useGroupInvites';
+import { useSharedLists } from '../../../../../src/hooks/useSharedLists';
 import type { GroupMember } from '../../../../../src/data/types';
 
 /**
@@ -36,7 +37,7 @@ function inviteLink(code: string): string {
 }
 
 export default function GroupMembersScreen() {
-  const { groupId } = useLocalSearchParams<{ groupId: string }>();
+  const { groupId, invite: autoInvite } = useLocalSearchParams<{ groupId: string; invite?: string }>();
   const { isConnected } = useNetworkStatus();
   const { members, loading } = useGroupMembers(groupId);
   const { groups } = useGroups();
@@ -50,6 +51,16 @@ export default function GroupMembersScreen() {
   const [enteringEmail, setEnteringEmail] = useState(false);
   const [pendingRevoke, setPendingRevoke] = useState<PendingInvite | null>(null);
   const { invites, refresh: refreshInvites } = useGroupInvites(groupId);
+
+  // Arriving straight from a share: the circle was created a moment ago and is
+  // empty. The ref keeps it to the opening — without it, closing the prompt and
+  // coming back to this screen would reopen it every time.
+  const autoInviteOpened = useRef(false);
+  useEffect(() => {
+    if (autoInvite !== '1' || autoInviteOpened.current) return;
+    autoInviteOpened.current = true;
+    setEnteringEmail(true);
+  }, [autoInvite]);
 
   const applyRevoke = async (invite: PendingInvite) => {
     setError(null);
@@ -65,6 +76,13 @@ export default function GroupMembersScreen() {
   };
 
   const isOwner = !!currentUid && group?.ownerId === currentUid;
+
+  // A circle can now hold more than one list — sharing an occasional list into
+  // an existing circle is the whole point of reusing one. Suspension works on
+  // the circle, not the list, so it closes all of them at once; naming them is
+  // the difference between an informed decision and a surprise.
+  const circleLists = useSharedLists(groups).filter((list) => list.groupId === groupId);
+  const sharedListNames = circleLists.map((list) => list.name).join(', ') || 'a kör listái';
 
   // Members who joined before member docs carried an email have none stored.
   // The owner opening this screen is the natural moment to repair that, so it
@@ -250,7 +268,7 @@ export default function GroupMembersScreen() {
         message={
           pendingSuspend?.suspended
             ? `"${pendingSuspend?.displayName || 'A tag'}" újra hozzáfér a csoport listáihoz, és az app következő megnyitásakor értesül róla.`
-            : `"${pendingSuspend?.displayName || 'A tag'}" nem fogja látni a csoport listáit és tételeit, amíg vissza nem engedélyezed. Az app következő megnyitásakor értesül róla, és megkapja a te e-mail címedet is, hogy jelezni tudjon.`
+            : `"${pendingSuspend?.displayName || 'A tag'}" nem fogja látni ennek a körnek egyetlen listáját sem (${sharedListNames}), amíg vissza nem engedélyezed. Az app következő megnyitásakor értesül róla, és megkapja a te e-mail címedet is, hogy jelezni tudjon.`
         }
         confirmLabel={pendingSuspend?.suspended ? 'Visszaengedélyezés' : 'Felfüggesztés'}
         destructive={!pendingSuspend?.suspended}

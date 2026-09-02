@@ -159,7 +159,9 @@ class FirestoreListsRepositoryImpl implements ListsRepository {
     }
 
     const list = await this.createList('Bevásárlólista', null, true);
-    await setDoc(userRef, { defaultListId: list.id }, { merge: true });
+    // Both pointers: this is the list the app is writing into *and* the
+    // account's private one. Sharing later moves only the first.
+    await setDoc(userRef, { defaultListId: list.id, personalListId: list.id }, { merge: true });
     return list;
   }
 

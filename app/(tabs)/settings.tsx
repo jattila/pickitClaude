@@ -8,6 +8,15 @@ import { ConfirmDialog } from '../../src/components/ConfirmDialog';
 import { ChoiceRow, ToggleRow } from '../../src/components/SettingRows';
 import { useEditableUserSettings } from '../../src/hooks/useUserSettings';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
+import { useGroups } from '../../src/hooks/useGroups';
+import { useLists } from '../../src/hooks/useLists';
+import { useSharedLists } from '../../src/hooks/useSharedLists';
+import { useShoppingListChoices, type ShoppingListChoice } from '../../src/hooks/useActiveShoppingList';
+import { useProfilePointers } from '../../src/hooks/useProfilePointers';
+import { setActiveShoppingList } from '../../src/services/userProfile';
+import { deleteGroup, leaveGroup, renameGroup } from '../../src/services/groups';
+import { FirestoreListsRepository } from '../../src/data/cloud/FirestoreListsRepository';
+import { resetDeviceState } from '../../src/services/devReset';
 
 const WINDOW_OPTIONS = [
   { value: 15, label: '15 perc' },
@@ -30,6 +39,46 @@ export default function SettingsScreen() {
   const { isConnected } = useNetworkStatus();
   const [enteringCode, setEnteringCode] = useState(false);
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
+
+  const { groups } = useGroups();
+  const { lists: personalLists } = useLists();
+  const sharedLists = useSharedLists(groups);
+  const choices = useShoppingListChoices(groups, personalLists, sharedLists);
+  const { defaultListId } = useProfilePointers();
+
+  const [renamingChoice, setRenamingChoice] = useState<ShoppingListChoice | null>(null);
+  const [leavingChoice, setLeavingChoice] = useState<ShoppingListChoice | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [confirmingReset, setConfirmingReset] = useState(false);
+
+  const ownerOf = (choice: ShoppingListChoice) =>
+    !!choice.groupId && groups.find((g) => g.id === choice.groupId)?.ownerId === user?.uid;
+
+  const chooseList = (choice: ShoppingListChoice) => {
+    if (!user || choice.listId === defaultListId) return;
+    setActiveShoppingList(user.uid, choice.listId).catch((e: any) =>
+      setListError(e?.message ?? 'Nem sikerült váltani.')
+    );
+  };
+
+  // Renaming a shared list renames its circle too: the circle only ever carried
+  // a copy of the list's name, and a stale copy would surface in invitations.
+  // Best-effort, because only the circle's owner may write the group document.
+  const applyRename = async (choice: ShoppingListChoice, name: string) => {
+    await FirestoreListsRepository.renameList(choice.listId, name);
+    if (choice.groupId) await renameGroup(choice.groupId, name).catch(() => undefined);
+  };
+
+  // Leaving or deleting takes the active list away, so the pointer has to move
+  // before the home screen tries to read a list this account can no longer see.
+  const applyLeave = async (choice: ShoppingListChoice) => {
+    if (!choice.groupId || !user) return;
+    const wasActive = choice.listId === defaultListId;
+    if (ownerOf(choice)) await deleteGroup(choice.groupId);
+    else await leaveGroup(choice.groupId);
+    const fallback = choices.find((c) => c.listId !== choice.listId);
+    if (wasActive && fallback) await setActiveShoppingList(user.uid, fallback.listId);
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -72,8 +121,59 @@ export default function SettingsScreen() {
 
       {user ? (
         <>
-          <Text style={styles.sectionHeader}>Csoportok</Text>
+          <Text style={styles.sectionHeader}>Bevásárlólistáim</Text>
           <View style={styles.card}>
+            {/* One row per shopping list this account can be *on*. Occasional
+                lists are absent on purpose — those live on the home screen as
+                rows, and are not somewhere you switch to. */}
+            {choices.length > 1 ? (
+              choices.map((choice) => {
+                const isActive = choice.listId === defaultListId;
+                return (
+                  <View key={choice.listId}>
+                    <Pressable style={styles.listRow} onPress={() => chooseList(choice)}>
+                      <View style={styles.listTextColumn}>
+                        <Text style={[styles.listName, isActive && styles.listNameActive]}>
+                          {choice.name}
+                        </Text>
+                        <Text style={styles.listHint}>
+                          {choice.groupId ? `${choice.memberCount} tag` : 'Csak a tiéd'}
+                        </Text>
+                      </View>
+                      {isActive ? <Text style={styles.listActiveMark}>✓</Text> : null}
+                    </Pressable>
+                    <View style={styles.listActions}>
+                      {choice.groupId ? (
+                        <Text
+                          style={styles.listAction}
+                          onPress={() => router.push(`/group/${choice.groupId}/members`)}
+                        >
+                          Tagok
+                        </Text>
+                      ) : null}
+                      <Text style={styles.listAction} onPress={() => setRenamingChoice(choice)}>
+                        Átnevezés
+                      </Text>
+                      {choice.groupId ? (
+                        <Text
+                          style={[styles.listAction, styles.listActionDestructive]}
+                          onPress={() => setLeavingChoice(choice)}
+                        >
+                          {ownerOf(choice) ? 'Törlés' : 'Kilépés'}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.divider} />
+                  </View>
+                );
+              })
+            ) : (
+              <Text style={styles.guestText}>
+                Egyetlen bevásárlólistád van. Ha megosztod, vagy csatlakozol valakiéhez, itt tudsz
+                majd váltani köztük.
+              </Text>
+            )}
+
             {!isConnected ? (
               <Text style={styles.hint}>
                 Nincs internetkapcsolat — a csatlakozáshoz kapcsolat kell.
@@ -131,6 +231,44 @@ export default function SettingsScreen() {
         </>
       ) : null}
 
+      {/* Development builds only, and never compiled into what testers get:
+          __DEV__ is false there, so this whole block drops out. */}
+      {__DEV__ ? (
+        <>
+          <Text style={styles.sectionHeader}>Fejlesztői eszközök</Text>
+          <View style={styles.card}>
+            <Text style={styles.guestText}>
+              Visszaállítja a telefont a friss telepítés állapotába: kijelentkezés, a Firestore
+              helyi gyorsítótárának ürítése, a vendég adatbázis törlése, majd újratöltés. iOS-en
+              ez az egyetlen út az app törlése nélkül.
+            </Text>
+            <Pressable
+              style={[styles.button, styles.dangerButton]}
+              onPress={() => setConfirmingReset(true)}
+            >
+              <Text style={styles.buttonLabel}>Helyi adatok visszaállítása</Text>
+            </Pressable>
+          </View>
+        </>
+      ) : null}
+
+      <ConfirmDialog
+        visible={confirmingReset}
+        title="Helyi adatok visszaállítása"
+        message="Kijelentkezel, és ezen a telefonon minden helyi adat törlődik — a vendéglista, a Firestore gyorsítótára és a „volt már itt fiók” jelölő is. A felhőben tárolt listáidat nem érinti. Az app ezután újratölt."
+        confirmLabel="Visszaállítás"
+        destructive
+        onCancel={() => setConfirmingReset(false)}
+        onConfirm={() => {
+          setConfirmingReset(false);
+          resetDeviceState().catch((e: any) =>
+            setListError(
+              e?.message ?? 'A visszaállítás félbemaradt. Indítsd újra kézzel az appot.'
+            )
+          );
+        }}
+      />
+
       <ConfirmDialog
         visible={confirmingSignOut}
         title="Kijelentkezés"
@@ -142,6 +280,51 @@ export default function SettingsScreen() {
           setConfirmingSignOut(false);
           signOutFully();
         }}
+      />
+
+      <PromptDialog
+        visible={!!renamingChoice}
+        title="Lista átnevezése"
+        capitalize
+        message="A többi tag is ezen a néven fogja látni."
+        initialValue={renamingChoice?.name ?? ''}
+        onCancel={() => setRenamingChoice(null)}
+        onConfirm={async (name) => {
+          if (renamingChoice) await applyRename(renamingChoice, name);
+          setRenamingChoice(null);
+        }}
+      />
+
+      <ConfirmDialog
+        visible={!!leavingChoice}
+        title={leavingChoice && ownerOf(leavingChoice) ? 'Lista törlése' : 'Kilépés a listából'}
+        message={
+          leavingChoice && ownerOf(leavingChoice)
+            ? `A(z) "${leavingChoice?.name}" lista minden tagnál megszűnik. A saját listáid megmaradnak, csak újra privátak lesznek.`
+            : `Kilépsz a(z) "${leavingChoice?.name}" listából. A tételeit ezután nem éred el, de új meghívóval bármikor visszatérhetsz.`
+        }
+        confirmLabel={leavingChoice && ownerOf(leavingChoice) ? 'Törlés' : 'Kilépés'}
+        destructive
+        onCancel={() => setLeavingChoice(null)}
+        onConfirm={() => {
+          const choice = leavingChoice;
+          setLeavingChoice(null);
+          if (choice) {
+            applyLeave(choice).catch((e: any) =>
+              setListError(e?.message ?? 'Nem sikerült végrehajtani.')
+            );
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        visible={!!listError}
+        title="Nem sikerült"
+        message={listError ?? ''}
+        confirmLabel="Értem"
+        hideCancel
+        onCancel={() => setListError(null)}
+        onConfirm={() => setListError(null)}
       />
 
       <PromptDialog
@@ -211,6 +394,9 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.4,
   },
+  dangerButton: {
+    backgroundColor: '#D9534F',
+  },
   buttonLabel: {
     color: 'white',
     fontWeight: '600',
@@ -221,5 +407,45 @@ const styles = StyleSheet.create({
   },
   secondaryButtonLabel: {
     color: '#4A90D9',
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  listTextColumn: {
+    flex: 1,
+  },
+  listName: {
+    fontSize: 15,
+  },
+  listNameActive: {
+    fontWeight: '700',
+  },
+  listHint: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  listActiveMark: {
+    color: '#4A90D9',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 12,
+  },
+  // The rarer operations, laid out as text rather than buttons: they belong to
+  // the row above them, and three filled controls per list would drown it.
+  listActions: {
+    flexDirection: 'row',
+    gap: 18,
+    paddingBottom: 8,
+  },
+  listAction: {
+    fontSize: 13,
+    color: '#4A90D9',
+    fontWeight: '600',
+  },
+  listActionDestructive: {
+    color: '#D9534F',
   },
 });

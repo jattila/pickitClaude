@@ -143,6 +143,7 @@ export default function GroupListsScreen() {
       <PromptDialog
         visible={creating}
         title="Új lista neve"
+        capitalize
         placeholder="pl. Heti bevásárlás"
         onCancel={() => setCreating(false)}
         onConfirm={async (name) => {
@@ -154,6 +155,7 @@ export default function GroupListsScreen() {
       <PromptDialog
         visible={!!renamingList}
         title="Lista átnevezése"
+        capitalize
         initialValue={renamingList?.name ?? ''}
         onCancel={() => setRenamingList(null)}
         onConfirm={async (name) => {

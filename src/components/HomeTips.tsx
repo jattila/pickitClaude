@@ -46,8 +46,8 @@ export function HomeTips({ showInviteTip }: HomeTipsProps) {
       body: (
         <Text style={styles.body}>
           Nem kell semmit beállítani. Írd be alul, mi kell — kenyér, tej —, és már a listádon is
-          van. Ha a mennyiség is számít, azt is odaírhatod: 2 kg, 1 doboz. Amit egyszer beírtál,
-          azt legközelebb felkínálja.
+          van. Ha a mennyiség is számít, azt is odaírhatod: 2 kg, 1 doboz. Ha egy tételt egyszer
+          beírtál, azt legközelebb felkínálja.
         </Text>
       ),
     },
@@ -81,7 +81,7 @@ export function HomeTips({ showInviteTip }: HomeTipsProps) {
         <>
           <Text style={styles.body}>
             A <Text style={styles.ui}>Megosztás</Text> gombbal a bevásárlólistádat adod közösbe —
-            adj nevet a körnek, például Kovács Család, és onnantól mindenki ugyanazt látja: mi
+            adj nevet a listának, például Kovács Család, és onnantól mindenki ugyanazt látja: mi
             hiányzik még, és mit vett meg valaki az imént.
           </Text>
           <Text style={[styles.body, styles.bodySpaced]}>
@@ -101,14 +101,14 @@ export function HomeTips({ showInviteTip }: HomeTipsProps) {
         <>
           <Text style={styles.body}>
             Ha linket kaptál, elég rákoppintani — az app megnyitja a meghívót. Ha kódot, akkor a{' '}
-            <Text style={styles.ui}>Csatlakozás egy csoporthoz</Text> sorba írd be. Fiókra szükség
-            lesz, és az e-mail címedet is vissza kell igazolnod: a közös lista csak így marad azok
-            között, akiknek szánták.
+            <Text style={styles.ui}>Beállítások</Text> fülön a{' '}
+            <Text style={styles.ui}>Csatlakozás meghívó kóddal</Text> gombbal add meg. Fiókra
+            szükség lesz, és az e-mail címedet is vissza kell igazolnod: a közös lista csak így
+            marad azok között, akiknek szánták.
           </Text>
           <Text style={[styles.body, styles.bodySpaced]}>
-            Ezután a közös bevásárlólista megjelenik a főképernyődön, a sajátod mellett — fent
-            tudsz váltani a kettő között. Amit magadnak írsz, az a tiéd marad; a többi tag csak a
-            megosztott listát látja.
+            Ezután a közös bevásárlólista lesz az, amire írsz, és a neve ott áll a fejlécben. Ha
+            több listád is van, a Beállításokban bármikor válthatsz köztük.
           </Text>
         </>
       ),

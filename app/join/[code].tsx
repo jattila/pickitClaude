@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { doc, getDoc, type DocumentData } from '@react-native-firebase/firestore';
+import { firestore } from '../../src/services/firebase';
 import { useAuthStore } from '../../src/store/authStore';
 import { getInvitePreview, redeemInvite } from '../../src/services/groups';
+import { setActiveShoppingList } from '../../src/services/userProfile';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
+import { useUiStore } from '../../src/store/uiStore';
 
 export default function JoinScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
@@ -32,7 +36,28 @@ export default function JoinScreen() {
     setJoining(true);
     try {
       const result = await redeemInvite(code);
-      router.replace(`/group/${result.groupId}`);
+
+      // A circle that shares a whole shopping list becomes the one you are
+      // shopping on — that is the point of joining. Occasional lists (a party,
+      // say) have no mainListId and simply appear as a row instead, so nothing
+      // is repointed and nothing needs announcing.
+      const groupSnap = await getDoc(doc(firestore, 'groups', result.groupId)).catch(() => null);
+      const mainListId = groupSnap?.exists()
+        ? ((groupSnap.data() as DocumentData).mainListId ?? null)
+        : null;
+
+      if (mainListId && user) {
+        await setActiveShoppingList(user.uid, mainListId).catch(() => undefined);
+        const listSnap = await getDoc(doc(firestore, 'lists', mainListId)).catch(() => null);
+        const listName = listSnap?.exists()
+          ? ((listSnap.data() as DocumentData).name ?? result.groupName)
+          : result.groupName;
+        useUiStore.getState().setJoinedListNotice(listName);
+      }
+
+      // Home rather than the circle's screen: what changed is the list you are
+      // shopping on, and that is what the home screen shows.
+      router.replace('/');
     } catch (e: any) {
       setError(e?.message ?? 'Nem sikerült csatlakozni.');
     } finally {

@@ -14,6 +14,13 @@ interface PromptDialogProps {
   allowEmpty?: boolean;
   /** For addresses and the like, where autocapitalising the first letter is wrong. */
   email?: boolean;
+  /**
+   * Capitalises the first letter, for fields whose value is a name rather than
+   * a word: lists get called "Kovács Család", not "kovács család". Off by
+   * default — product names, quantities and invite codes all read worse with a
+   * capital forced on them.
+   */
+  capitalize?: boolean;
   onConfirm: (value: string) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -28,6 +35,7 @@ export function PromptDialog({
   cancelLabel = 'Mégse',
   allowEmpty,
   email,
+  capitalize,
   onConfirm,
   onCancel,
 }: PromptDialogProps) {
@@ -99,10 +107,11 @@ export function PromptDialog({
             placeholder={placeholder}
             style={styles.input}
             autoFocus
-            // Nothing typed into these dialogs — product names, list names,
-            // quantities, addresses, invite codes — wants a capital first
-            // letter forced on it.
-            autoCapitalize="none"
+            // Off unless asked for. Product names, quantities, addresses and
+            // invite codes all read worse with a capital forced on them; a list
+            // name is the exception, because it is a name. `sentences` rather
+            // than `words`: "Szülinapi buli" is right, "Szülinapi Buli" is not.
+            autoCapitalize={capitalize && !email ? 'sentences' : 'none'}
             autoCorrect={!email}
             keyboardType={email ? 'email-address' : 'default'}
             onSubmitEditing={submit}

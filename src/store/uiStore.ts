@@ -5,15 +5,6 @@ interface UiState {
   openMenu: () => void;
   closeMenu: () => void;
   /**
-   * Which shopping list the home screen is showing: 'personal', or a group id
-   * once you share yours or join someone's. Deliberately not persisted to
-   * Firestore — it is a "where am I looking right now" preference, and writing
-   * it would cost a document write every time someone glances at the family
-   * list. Falls back to personal whenever the stored scope is gone.
-   */
-  homeScopeKey: string;
-  setHomeScopeKey: (key: string) => void;
-  /**
    * Bumped when data moves underneath the app without a listener seeing it —
    * today only the guest-to-account migration. Hooks that resolve something
    * once (which list is "mine") depend on it, so they re-read instead of
@@ -34,6 +25,13 @@ interface UiState {
   /** Signed in to an existing account while this phone still holds a guest list. */
   localListKeptNotice: boolean;
   setLocalListKeptNotice: (value: boolean) => void;
+  /**
+   * Set after joining a circle, naming the list that just became the active one.
+   * Joining silently repoints where every item you type lands; a message is the
+   * difference between that being a feature and being a trap.
+   */
+  joinedListNotice: string | null;
+  setJoinedListNotice: (name: string | null) => void;
 }
 
 /** Drives the global hamburger-menu overlay mounted once in the root layout. */
@@ -41,8 +39,6 @@ export const useUiStore = create<UiState>((set) => ({
   menuOpen: false,
   openMenu: () => set({ menuOpen: true }),
   closeMenu: () => set({ menuOpen: false }),
-  homeScopeKey: 'personal',
-  setHomeScopeKey: (key) => set({ homeScopeKey: key }),
   dataRevision: 0,
   bumpDataRevision: () => set((state) => ({ dataRevision: state.dataRevision + 1 })),
   justMigratedNotice: false,
@@ -53,4 +49,6 @@ export const useUiStore = create<UiState>((set) => ({
     set(value ? { justMigratedNotice: true, localListKeptNotice: false } : { justMigratedNotice: false }),
   localListKeptNotice: false,
   setLocalListKeptNotice: (value) => set({ localListKeptNotice: value }),
+  joinedListNotice: null,
+  setJoinedListNotice: (name) => set({ joinedListNotice: name }),
 }));

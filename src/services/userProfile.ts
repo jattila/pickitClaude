@@ -35,7 +35,20 @@ export async function createDefaultUserProfile(
     lastDigestSentAt: now,
     nextDigestDueAt: now + DEFAULT_SETTINGS.digestIntervalMinutes * 60_000,
     defaultListId: guestData?.defaultListId ?? null,
+    personalListId: guestData?.defaultListId ?? null,
     guestDataMigratedAt: guestData?.migrated ? now : null,
     createdAt: now,
   });
+}
+
+/**
+ * Points the profile at the shopping list the home screen writes into.
+ *
+ * `defaultListId` used to mean "my personal list". It now means "the list I am
+ * shopping on", which may be a group's shared one — sharing your list or joining
+ * someone else's is exactly the moment that changes, and the home screen has to
+ * follow without asking.
+ */
+export async function setActiveShoppingList(uid: string, listId: string): Promise<void> {
+  await setDoc(doc(firestore, 'users', uid), { defaultListId: listId }, { merge: true });
 }

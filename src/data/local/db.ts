@@ -60,9 +60,25 @@ async function applyColumnMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
   }
 }
 
+export const GUEST_DB_NAME = 'pickit-guest.db';
+
+/**
+ * Closes the open handle and forgets it, so the file can be deleted.
+ *
+ * Only the development reset needs this: SQLite will not remove a database
+ * anything still holds open, and the module-level promise would otherwise hand
+ * out a handle to a file that no longer exists.
+ */
+export async function closeDb(): Promise<void> {
+  const pending = dbPromise;
+  dbPromise = null;
+  if (!pending) return;
+  await pending.then((db) => db.closeAsync()).catch(() => undefined);
+}
+
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
-    dbPromise = SQLite.openDatabaseAsync('pickit-guest.db').then(async (db) => {
+    dbPromise = SQLite.openDatabaseAsync(GUEST_DB_NAME).then(async (db) => {
       await db.execAsync(SCHEMA);
       await applyColumnMigrations(db);
       return db;

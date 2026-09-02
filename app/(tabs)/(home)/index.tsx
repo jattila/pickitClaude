@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Stack, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -8,49 +8,41 @@ import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../../../src/u
 import { useLists } from '../../../src/hooks/useLists';
 import { useGroups } from '../../../src/hooks/useGroups';
 import { useSharedLists } from '../../../src/hooks/useSharedLists';
-import { useHomeScopes, PERSONAL_SCOPE } from '../../../src/hooks/useHomeScopes';
+import { useActiveShoppingList } from '../../../src/hooks/useActiveShoppingList';
 import { useShareFlow } from '../../../src/hooks/useShareFlow';
-import { leaveGroup } from '../../../src/services/groups';
 import { unshareList } from '../../../src/services/sharing';
-import { useDefaultList } from '../../../src/hooks/useQuickAdd';
 import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
-import { useNetworkStatus } from '../../../src/hooks/useNetworkStatus';
 import { useAuthStore } from '../../../src/store/authStore';
 import { useHadAccountHere } from '../../../src/hooks/useHadAccountHere';
+import { useGuestSaveWarning } from '../../../src/hooks/useGuestSaveWarning';
 import { useUiStore } from '../../../src/store/uiStore';
 import { ListRow } from '../../../src/components/ListRow';
-import { GroupRow } from '../../../src/components/GroupRow';
 import { ItemRow } from '../../../src/components/ItemRow';
 import { SectionHeaderRow } from '../../../src/components/SectionHeaderRow';
 import { ItemNameInput } from '../../../src/components/ItemNameInput';
-import { ScopeSelector } from '../../../src/components/ScopeSelector';
 import { HomeTips } from '../../../src/components/HomeTips';
-import { GuestListNotices } from '../../../src/components/GuestListNotices';
+import { GuestNotice } from '../../../src/components/GuestNotice';
 import { HeaderActionButton } from '../../../src/components/HeaderActionButton';
 import { PromptDialog } from '../../../src/components/PromptDialog';
 import { ConfirmDialog } from '../../../src/components/ConfirmDialog';
 import { HamburgerButton } from '../../../src/components/HamburgerButton';
-import type { Group, ShoppingList } from '../../../src/data/types';
+import type { ShoppingList } from '../../../src/data/types';
 
 export default function ListsOverviewScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
   const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
-  const { isConnected } = useNetworkStatus();
   const user = useAuthStore((state) => state.user);
-  const { listId: personalListId, ensureListId: ensurePersonalListId } = useDefaultList();
-  const { lists: allLists, loading, createList, renameList, deleteList } = useLists();
-  const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
+  const { lists: personalLists, loading, createList, renameList, deleteList } = useLists();
+  const { groups } = useGroups();
 
-  // Lists that reached me through a group. Kept apart from `allLists` (which
-  // stays strictly personal) so it stays obvious which ones are not mine alone.
+  // Lists that reached me through a circle. Kept apart from `personalLists`
+  // (which stays strictly private) so it stays obvious which are not mine alone.
   const sharedLists = useSharedLists(groups);
-  const { scopes, selected, select, listIdsInScopes } = useHomeScopes(
-    groups,
-    sharedLists,
-    personalListId,
-    ensurePersonalListId
-  );
+
+  // One list, no picker. Which one is decided by sharing and joining; changing
+  // it deliberately lives in Beállítások, not here.
+  const active = useActiveShoppingList(groups, personalLists, sharedLists);
 
   const {
     scrollViewRef,
@@ -69,47 +61,43 @@ export default function ListsOverviewScreen() {
     checkedCount,
     checkItem,
     dialogs: itemDialogs,
-  } = useItemsPanel(selected.listId, selected.ensureListId);
+  } = useItemsPanel(active.listId, active.ensureListId);
 
-  const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow();
+  const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow(groups);
 
-  // A phone that has had an account on it before is almost certainly the same
-  // person coming back, and their list is already in the cloud — offering them
-  // registration would send them to open a second account beside it.
   const hadAccountHere = useHadAccountHere();
   const guestRoute = hadAccountHere ? '/sign-in' : '/sign-up';
 
-  // Both are set elsewhere — a migration finishing in a root hook, a sign-in
-  // completing on another screen — and land here because this is where the
+  // Set elsewhere — a migration finishing in a root hook, a sign-in or a join
+  // completing on another screen — and shown here, because this is where the
   // person is looking afterwards.
   const justMigratedNotice = useUiStore((state) => state.justMigratedNotice);
   const setJustMigratedNotice = useUiStore((state) => state.setJustMigratedNotice);
   const localListKeptNotice = useUiStore((state) => state.localListKeptNotice);
   const setLocalListKeptNotice = useUiStore((state) => state.setLocalListKeptNotice);
+  const joinedListNotice = useUiStore((state) => state.joinedListNotice);
+  const setJoinedListNotice = useUiStore((state) => state.setJoinedListNotice);
 
-  // Every list that has a row of its own: my private ones plus the shared ones.
-  // A scope's own list is excluded — its items are already shown in full below,
-  // so a row pointing at the same thing would just be a second door.
+  // Every list that gets a row: my private ones plus the occasional lists that
+  // came through a circle. The active shopping list is excluded — its items are
+  // shown in full below, so a row pointing at the same thing is a second door.
   const listRows: ShoppingList[] = [
-    ...allLists.filter((list) => list.id !== personalListId),
-    ...sharedLists.filter((list) => !listIdsInScopes.has(list.id)),
+    ...personalLists.filter((list) => list.id !== active.listId),
+    ...sharedLists.filter((list) => list.id !== active.listId),
   ];
+
+  // Content means an item *or* a list: both are something that would be lost,
+  // so both are reason enough to say so.
+  const guestWarning = useGuestSaveWarning(!user, sections.length > 0 || listRows.length > 0);
 
   const groupNameFor = (list: ShoppingList) =>
     list.groupId ? (groups.find((group) => group.id === list.groupId)?.name ?? 'Csoport') : null;
 
   const [creatingList, setCreatingList] = useState(false);
-  const [creatingGroup, setCreatingGroup] = useState(false);
   const [renamingList, setRenamingList] = useState<ShoppingList | null>(null);
   const [deletingList, setDeletingList] = useState<ShoppingList | null>(null);
   const [unsharingList, setUnsharingList] = useState<ShoppingList | null>(null);
-  const [renamingGroup, setRenamingGroup] = useState<Group | null>(null);
-  const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
-  const [enteringCode, setEnteringCode] = useState(false);
-  const [leavingGroup, setLeavingGroup] = useState<Group | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  const isPersonalScope = selected.key === PERSONAL_SCOPE;
 
   return (
     <KeyboardAvoidingView
@@ -119,116 +107,71 @@ export default function ListsOverviewScreen() {
     >
       <Stack.Screen
         options={{
-          title: 'PickIt',
+          // The active list's name, not the app's. With one list at a time and
+          // the picker moved to Beállítások, this is the only thing on screen
+          // saying which list an item is about to land on.
+          title: active.name,
           headerLeft: () => <HamburgerButton />,
-          headerRight: () => (
-            <View style={styles.headerActions}>
-              {/* Signed-in only. For a guest this button led straight to a
-                  dialog saying an account is needed — the same thing the notice
-                  above the list now says, so it was a second door to one room.
-                  Signed in it stays: the home screen's own shopping list has no
-                  detail screen of its own, so this is the only way to share it. */}
-              {user ? (
-                <HeaderActionButton
-                  label="Megosztás"
-                  onPress={() => {
-                    // Already shared: the button opens the group it belongs to,
-                    // which is where the members and the rest of its lists are.
-                    if (!isPersonalScope && selected.groupId) {
-                      openGroup(selected.groupId);
-                      return;
-                    }
-                    requestShare({
-                      listId: selected.listId,
-                      ensureListId: selected.ensureListId,
-                      asMain: true,
-                      what: 'a bevásárlólistád',
-                    });
-                  }}
-                />
-              ) : (
-                // Registration by default: someone still using the app as a
-                // guest usually has no account yet. Whichever is not offered
-                // here stays reachable from the menu, from Beállítások, and from
-                // a link at the bottom of each of the two screens.
-                <HeaderActionButton
-                  label={hadAccountHere ? 'Belépés' : 'Regisztráció'}
-                  onPress={() => router.push(guestRoute)}
-                />
-              )}
-            </View>
-          ),
+          headerRight: () =>
+            user ? (
+              <HeaderActionButton
+                label="Megosztás"
+                onPress={() => {
+                  // Already shared: open the circle, where the members are.
+                  if (active.groupId) {
+                    openGroup(active.groupId);
+                    return;
+                  }
+                  requestShare({
+                    listId: active.listId,
+                    ensureListId: active.ensureListId,
+                    asMain: true,
+                    listName: active.name,
+                  });
+                }}
+              />
+            ) : (
+              // Registration by default: someone still using the app as a guest
+              // usually has no account yet. Signing in stays reachable from the
+              // menu, from Beállítások, and from a link on the sign-up screen.
+              <HeaderActionButton
+                label={hadAccountHere ? 'Belépés' : 'Regisztráció'}
+                onPress={() => router.push(guestRoute)}
+              />
+            ),
         }}
       />
-
-      {/* Invisible until there is more than one shopping list to be looking at. */}
-      <ScopeSelector scopes={scopes} selectedKey={selected.key} onSelect={select} />
 
       {recentPurchaseBanners}
 
       <ScrollView ref={scrollViewRef} style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
-        {/* Gone the moment the list has anything on it. The tips are for the
-            blank screen, and a blank screen stops existing after one item. */}
         {sections.length === 0 ? <HomeTips showInviteTip={groups.length === 0} /> : null}
 
-        {/* Only once there is a list worth losing. An empty one needs none of
-            this — the tips are showing instead, and they cover the same ground
-            without standing between anyone and their shopping list. */}
-        {!user && sections.length > 0 ? (
-          <GuestListNotices
+        {/* One bar, two strengths. The offer stands for as long as someone uses
+            the app as a guest; it hardens into a warning once there is an item
+            or a list to lose, and steps back to the offer when that warning is
+            acknowledged. Neither renders until the flag is read, so the screen
+            never flips colour a moment after it appears. */}
+        {guestWarning.showWarning ? (
+          <GuestNotice
+            mode="warning"
+            hadAccountHere={hadAccountHere}
+            onPress={() => router.push(guestRoute)}
+            onDismiss={guestWarning.dismiss}
+          />
+        ) : guestWarning.showOffer ? (
+          <GuestNotice
+            mode="offer"
             hadAccountHere={hadAccountHere}
             onPress={() => router.push(guestRoute)}
           />
         ) : null}
 
-        {user ? (
-          <>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeaderInline}>Csoportjaim</Text>
-              <Pressable onPress={() => setCreatingGroup(true)} hitSlop={8}>
-                <Text style={styles.sectionAction}>+ Új csoport</Text>
-              </Pressable>
-            </View>
-            {groups.length === 0 ? (
-              <Text style={styles.sectionEmptyText}>
-                Még nem osztottál meg semmit. A fenti Megosztás gombbal a bevásárlólistádat
-                oszthatod meg, egy-egy listát pedig a saját képernyőjén.
-              </Text>
-            ) : (
-              groups.map((group) => (
-                <GroupRow
-                  key={group.id}
-                  group={group}
-                  isOwner={group.ownerId === user?.uid}
-                  onPress={() => router.push(`/group/${group.id}`)}
-                  onRenameRequest={() => setRenamingGroup(group)}
-                  onDeleteRequest={() => setDeletingGroup(group)}
-                  onLeaveRequest={() => setLeavingGroup(group)}
-                />
-              ))
-            )}
-            <Pressable
-              style={styles.joinRow}
-              onPress={() => setEnteringCode(true)}
-              disabled={!isConnected}
-            >
-              <Text style={[styles.joinLabel, !isConnected && styles.joinLabelDisabled]}>
-                Csatlakozás egy csoporthoz
-              </Text>
-              {!isConnected ? (
-                <Text style={styles.joinHint}>
-                  Nincs internetkapcsolat — a csatlakozáshoz kapcsolat kell.
-                </Text>
-              ) : null}
-            </Pressable>
-          </>
-        ) : null}
-
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeaderInline}>Listáim</Text>
-          <Pressable onPress={() => setCreatingList(true)} hitSlop={8}>
-            <Text style={styles.sectionAction}>+ Új lista</Text>
-          </Pressable>
+          <Text style={styles.sectionAction} onPress={() => setCreatingList(true)}>
+            + Új lista
+          </Text>
         </View>
         {!loading &&
           listRows.map((item) => (
@@ -243,16 +186,7 @@ export default function ListsOverviewScreen() {
             />
           ))}
 
-        {/* Naming the list the items belong to matters once there is more than
-            one: the input at the bottom writes into whichever is selected. With
-            a single scope and nothing on it, the heading would sit over empty
-            space and label nothing — so it waits until there is something to
-            label, or until there is a choice to disambiguate. */}
-        {sections.length > 0 || scopes.length > 1 ? (
-          <SectionHeaderRow
-            title={isPersonalScope ? 'Bevásárlólistám' : `${selected.label} — bevásárlólista`}
-          />
-        ) : null}
+        {sections.length > 0 ? <SectionHeaderRow title="Bevásárlólista" /> : null}
 
         {sections.map((section) => (
           <Fragment key={section.title ?? 'active'}>
@@ -282,8 +216,8 @@ export default function ListsOverviewScreen() {
 
       <View ref={keyboardRef} collapsable={false}>
         <ItemNameInput
-          listId={selected.listId}
-          groupId={selected.groupId}
+          listId={active.listId}
+          groupId={active.groupId}
           onSubmit={handleAdd}
           excludeIds={existingItemIds}
         />
@@ -312,21 +246,23 @@ export default function ListsOverviewScreen() {
         onConfirm={() => setLocalListKeptNotice(false)}
       />
 
-      <PromptDialog
-        visible={enteringCode}
-        title="Meghívó kód"
-        placeholder="pl. AB2C3D4E"
-        onCancel={() => setEnteringCode(false)}
-        onConfirm={(code) => {
-          setEnteringCode(false);
-          router.push(`/join/${code.trim().toUpperCase()}`);
-        }}
+      {/* Joining repoints where everything you type lands. Saying so once is
+          what keeps that from being discovered hours later. */}
+      <ConfirmDialog
+        visible={!!joinedListNotice}
+        title="Új bevásárlólistád van"
+        message={`Ezentúl a(z) "${joinedListNotice ?? ''}" listára írsz. A Beállításokban bármikor válthatsz a listáid között.`}
+        confirmLabel="Értem"
+        hideCancel
+        onCancel={() => setJoinedListNotice(null)}
+        onConfirm={() => setJoinedListNotice(null)}
       />
 
       <PromptDialog
         visible={creatingList}
         title="Új lista neve"
-        placeholder="pl. Heti bevásárlás"
+        capitalize
+        placeholder="pl. Szülinapi buli"
         onCancel={() => setCreatingList(false)}
         onConfirm={async (name) => {
           await createList(name);
@@ -335,19 +271,9 @@ export default function ListsOverviewScreen() {
       />
 
       <PromptDialog
-        visible={creatingGroup}
-        title="Új csoport neve"
-        placeholder="pl. Család"
-        onCancel={() => setCreatingGroup(false)}
-        onConfirm={async (name) => {
-          await createGroup(name);
-          setCreatingGroup(false);
-        }}
-      />
-
-      <PromptDialog
         visible={!!renamingList}
         title="Lista átnevezése"
+        capitalize
         initialValue={renamingList?.name ?? ''}
         onCancel={() => setRenamingList(null)}
         onConfirm={async (name) => {
@@ -393,41 +319,6 @@ export default function ListsOverviewScreen() {
         }}
       />
 
-      <PromptDialog
-        visible={!!renamingGroup}
-        title="Csoport átnevezése"
-        initialValue={renamingGroup?.name ?? ''}
-        onCancel={() => setRenamingGroup(null)}
-        onConfirm={async (name) => {
-          if (renamingGroup) await renameGroup(renamingGroup.id, name);
-          setRenamingGroup(null);
-        }}
-      />
-
-      {/* Leaving runs through a Cloud Function, so offline it cannot even be
-          queued — the dialog says so instead of pretending to work. */}
-      <ConfirmDialog
-        visible={!!leavingGroup}
-        title={isConnected ? 'Kilépés a csoportból' : 'Nincs internetkapcsolat'}
-        message={
-          isConnected
-            ? `Biztosan kilépsz a(z) "${leavingGroup?.name}" csoportból? A csoport listái és tételei ezután nem lesznek elérhetők. Új meghívóval bármikor visszatérhetsz.`
-            : 'A csoportból kilépni csak online lehet. Próbáld újra, ha van kapcsolatod.'
-        }
-        confirmLabel={isConnected ? 'Kilépés' : 'Értem'}
-        hideCancel={!isConnected}
-        destructive={isConnected}
-        onCancel={() => setLeavingGroup(null)}
-        onConfirm={() => {
-          const group = leavingGroup;
-          setLeavingGroup(null);
-          if (!group || !isConnected) return;
-          leaveGroup(group.id).catch((e: any) =>
-            setActionError(e?.message ?? 'Nem sikerült kilépni a csoportból.')
-          );
-        }}
-      />
-
       <ConfirmDialog
         visible={!!actionError}
         title="Nem sikerült"
@@ -436,19 +327,6 @@ export default function ListsOverviewScreen() {
         hideCancel
         onCancel={() => setActionError(null)}
         onConfirm={() => setActionError(null)}
-      />
-
-      <ConfirmDialog
-        visible={!!deletingGroup}
-        title="Csoport törlése"
-        message={`Biztosan törlöd a(z) "${deletingGroup?.name}" csoportot? A saját listáid megmaradnak, csak újra privátak lesznek. A többi tag által megosztott listák viszont eltűnnek.`}
-        confirmLabel="Törlés"
-        destructive
-        onCancel={() => setDeletingGroup(null)}
-        onConfirm={() => {
-          if (deletingGroup) deleteGroup(deletingGroup.id);
-          setDeletingGroup(null);
-        }}
       />
     </KeyboardAvoidingView>
   );
@@ -468,11 +346,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 16,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -482,8 +355,8 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   // Same look as a section header but without horizontal padding, because its
-  // parent (sectionHeaderRow) already provides the 20px inset — so the header
-  // text lines up with the rows below instead of sitting further in.
+  // parent already provides the 20px inset — so the header text lines up with
+  // the rows below instead of sitting further in.
   sectionHeaderInline: {
     fontSize: 13,
     fontWeight: '700',
@@ -494,31 +367,5 @@ const styles = StyleSheet.create({
     color: '#4A90D9',
     fontSize: 13,
     fontWeight: '600',
-  },
-  sectionEmptyText: {
-    fontSize: 14,
-    color: '#999',
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  joinRow: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E0E0E0',
-  },
-  joinLabel: {
-    color: '#4A90D9',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  joinLabelDisabled: {
-    color: '#9AA5AE',
-  },
-  joinHint: {
-    color: '#D9534F',
-    fontSize: 12,
-    marginTop: 4,
   },
 });

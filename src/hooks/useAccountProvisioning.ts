@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { auth } from '../services/firebase';
 import { provisionVerifiedAccount } from '../services/provisioning';
 import { markAccountUsedHere } from '../data/local/accountHistory';
+import { setFlag } from '../data/local/localFlags';
+import { GUEST_WARNING_KEY } from './useGuestSaveWarning';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { useNetworkStatus } from './useNetworkStatus';
@@ -37,6 +39,10 @@ export function useAccountProvisioning() {
     // registration again — sending them to make a second account while their
     // list sits in the cloud under the first one.
     markAccountUsedHere().catch(() => undefined);
+    // The "this stays on your phone" warning is answered by having an account.
+    // Set here rather than left to expire, so a later sign-out cannot resurrect
+    // a warning this person has already acted on.
+    setFlag(GUEST_WARNING_KEY).catch(() => undefined);
 
     provisionVerifiedAccount(current)
       .then((migrated) => {
