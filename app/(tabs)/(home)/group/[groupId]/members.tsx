@@ -82,7 +82,7 @@ export default function GroupMembersScreen() {
   // the circle, not the list, so it closes all of them at once; naming them is
   // the difference between an informed decision and a surprise.
   const circleLists = useSharedLists(groups).filter((list) => list.groupId === groupId);
-  const sharedListNames = circleLists.map((list) => list.name).join(', ') || 'a kör listái';
+  const sharedListNames = circleLists.map((list) => list.name).join(', ') || 'a csoport listái';
 
   // Members who joined before member docs carried an email have none stored.
   // The owner opening this screen is the natural moment to repair that, so it
@@ -268,7 +268,7 @@ export default function GroupMembersScreen() {
         message={
           pendingSuspend?.suspended
             ? `"${pendingSuspend?.displayName || 'A tag'}" újra hozzáfér a csoport listáihoz, és az app következő megnyitásakor értesül róla.`
-            : `"${pendingSuspend?.displayName || 'A tag'}" nem fogja látni ennek a körnek egyetlen listáját sem (${sharedListNames}), amíg vissza nem engedélyezed. Az app következő megnyitásakor értesül róla, és megkapja a te e-mail címedet is, hogy jelezni tudjon.`
+            : `"${pendingSuspend?.displayName || 'A tag'}" nem fogja látni ennek a csoportnak egyetlen listáját sem (${sharedListNames}), amíg vissza nem engedélyezed. Az app következő megnyitásakor értesül róla, és megkapja a te e-mail címedet is, hogy jelezni tudjon.`
         }
         confirmLabel={pendingSuspend?.suspended ? 'Visszaengedélyezés' : 'Felfüggesztés'}
         destructive={!pendingSuspend?.suspended}

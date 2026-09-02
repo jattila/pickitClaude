@@ -20,7 +20,7 @@ export default function ListDetailScreen() {
   const headerHeight = useHeaderHeight();
   const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
   const { groups } = useGroups();
-  const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow(groups);
+  const { requestShare, openMembers, dialogs: shareDialogs } = useShareFlow(groups);
 
   // This is the entry point for the party case: make a list, then decide who it
   // is for. Once shared, the same button turns into the way to reach the people
@@ -59,7 +59,7 @@ export default function ListDetailScreen() {
             <HeaderActionButton
               label="Megosztás"
               onPress={() => {
-                if (list?.groupId) openGroup(list.groupId);
+                if (list?.groupId) openMembers(list.groupId);
                 else
                   requestShare({
                     listId,

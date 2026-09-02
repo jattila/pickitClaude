@@ -67,13 +67,13 @@ export async function shareList(listId: string, options: ShareOptions): Promise<
 
   if (options.existingGroupId) {
     if (options.asMain) {
-      throw new Error('A teljes bevásárlólista mindig saját kört kap.');
+      throw new Error('A teljes bevásárlólistát nem lehet meglévő tagokhoz csatolni.');
     }
     const groupSnap = await getDoc(doc(firestore, 'groups', options.existingGroupId));
-    if (!groupSnap.exists()) throw new Error('Ez a kör már nem létezik.');
+    if (!groupSnap.exists()) throw new Error('Ez a csoport már nem létezik.');
     const group = groupSnap.data() as DocumentData;
     if (!((group.memberIds as string[]) ?? []).includes(uid)) {
-      throw new Error('Nem vagy tagja ennek a körnek.');
+      throw new Error('Nem vagy tagja ennek a csoportnak.');
     }
     await updateDoc(listRef, { groupId: options.existingGroupId, updatedAt: now });
     return { groupId: options.existingGroupId, groupName: group.name };

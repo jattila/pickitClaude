@@ -5,7 +5,6 @@ import {
   getDocs,
   orderBy,
   query,
-  setDoc,
   updateDoc,
   where,
   writeBatch,
@@ -261,28 +260,6 @@ function toGroupList(snap: QueryDocumentSnapshot<DocumentData>) {
   };
 }
 
-export async function getGroupLists(groupId: string) {
-  const q = query(
-    collection(firestore, 'lists'),
-    where('groupId', '==', groupId),
-    orderBy('updatedAt', 'desc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(toGroupList);
-}
-
-export function subscribeGroupLists(
-  groupId: string,
-  onChange: (lists: ReturnType<typeof toGroupList>[]) => void
-): () => void {
-  const q = query(
-    collection(firestore, 'lists'),
-    where('groupId', '==', groupId),
-    orderBy('updatedAt', 'desc')
-  );
-  return watchQuery(q, (snap) => snap.docs.map(toGroupList), onChange, []);
-}
-
 /**
  * Firestore's cap on values in an `in` filter. A member of more than this many
  * groups is not a case worth a second query — the overflow simply doesn't show,
@@ -313,73 +290,3 @@ export function subscribeListsForGroups(
   return watchQuery(q, (snap) => snap.docs.map(toGroupList), onChange, []);
 }
 
-/** Deterministic doc id for a group's hidden "loose items" list, so concurrent
- * first-opens by different members resolve the same list instead of duplicating. */
-function groupDefaultListId(groupId: string): string {
-  return `gdefault_${groupId}`;
-}
-
-/**
- * Returns the group's shared quick-add list id only if it already exists (never creates).
- *
- * A group formed by sharing someone's main list already has one — `mainListId` —
- * and it is a normal list with a random id, not the deterministic `gdefault_`
- * one. Passing it in short-circuits the lookup; leaving it out keeps the
- * original behaviour for groups created before sharing existed.
- */
-export async function getExistingGroupDefaultListId(
-  groupId: string,
-  mainListId: string | null = null
-): Promise<string | null> {
-  if (mainListId) return mainListId;
-  const ref = doc(firestore, 'lists', groupDefaultListId(groupId));
-  // Offline with nothing cached, getDoc() throws rather than resolving "absent";
-  // reporting no list would strand the group's quick-add, so assume it exists —
-  // the id is deterministic, so it's the right one either way.
-  const snap = await getDoc(ref).catch(() => null);
-  return !snap || snap.exists() ? ref.id : null;
-}
-
-/**
- * The group's shared quick-add list (created on first use). Like the personal
- * default list it's never shown in the group's list section — its items surface
- * directly on the group screen so members can jot loose items without picking a list.
- */
-export async function getOrCreateGroupDefaultList(
-  groupId: string,
-  mainListId: string | null = null
-): Promise<ShoppingList> {
-  const uid = requireUid();
-  const ref = doc(firestore, 'lists', mainListId ?? groupDefaultListId(groupId));
-  const snap = await getDoc(ref).catch(() => null);
-  if (snap?.exists()) {
-    const data = snap.data() as DocumentData;
-    return { id: ref.id, name: data.name, groupId, createdAt: data.createdAt, updatedAt: data.updatedAt };
-  }
-  // A named mainListId is a list that demonstrably exists — someone shared it to
-  // form this group. Falling through to the blind write below would overwrite a
-  // real list with an empty "Bevásárlólista", so hand back the id and let the
-  // caller work against it; offline writes to its items queue up as usual.
-  if (mainListId) {
-    return { id: mainListId, name: 'Bevásárlólista', groupId, createdAt: 0, updatedAt: 0 };
-  }
-  // Safe to write blind when the read failed (offline): the id is derived from
-  // the group id, so this converges on the same doc instead of duplicating.
-
-  const now = Date.now();
-  await setDoc(ref, {
-    name: 'Bevásárlólista',
-    groupId,
-    ownerId: uid,
-    activeItemCount: 0,
-    boughtItemCount: 0,
-    lastActivityAt: now,
-    createdAt: now,
-    updatedAt: now,
-  });
-  return { id: ref.id, name: 'Bevásárlólista', groupId, createdAt: now, updatedAt: now };
-}
-
-export function isGroupDefaultList(groupId: string, listId: string): boolean {
-  return listId === groupDefaultListId(groupId);
-}

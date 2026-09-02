@@ -63,7 +63,7 @@ export default function ListsOverviewScreen() {
     dialogs: itemDialogs,
   } = useItemsPanel(active.listId, active.ensureListId);
 
-  const { requestShare, openGroup, dialogs: shareDialogs } = useShareFlow(groups);
+  const { requestShare, openMembers, dialogs: shareDialogs } = useShareFlow(groups);
 
   const hadAccountHere = useHadAccountHere();
   const guestRoute = hadAccountHere ? '/sign-in' : '/sign-up';
@@ -86,9 +86,13 @@ export default function ListsOverviewScreen() {
     ...sharedLists.filter((list) => list.id !== active.listId),
   ];
 
-  // Content means an item *or* a list: both are something that would be lost,
-  // so both are reason enough to say so.
-  const guestWarning = useGuestSaveWarning(!user, sections.length > 0 || listRows.length > 0);
+  // "Has this phone got anything on it yet" — an item *or* a list. One name for
+  // it, used by everything that asks: the tips step aside once there is content,
+  // and the guest bar hardens into a warning at the same moment. Asked twice in
+  // two places, the two answers drifted apart once already.
+  const hasContent = sections.length > 0 || listRows.length > 0;
+
+  const guestWarning = useGuestSaveWarning(!user, hasContent);
 
   const groupNameFor = (list: ShoppingList) =>
     list.groupId ? (groups.find((group) => group.id === list.groupId)?.name ?? 'Csoport') : null;
@@ -117,9 +121,9 @@ export default function ListsOverviewScreen() {
               <HeaderActionButton
                 label="Megosztás"
                 onPress={() => {
-                  // Already shared: open the circle, where the members are.
+                  // Already shared: go to the people it is shared with.
                   if (active.groupId) {
-                    openGroup(active.groupId);
+                    openMembers(active.groupId);
                     return;
                   }
                   requestShare({
@@ -145,7 +149,7 @@ export default function ListsOverviewScreen() {
       {recentPurchaseBanners}
 
       <ScrollView ref={scrollViewRef} style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
-        {sections.length === 0 ? <HomeTips showInviteTip={groups.length === 0} /> : null}
+        {hasContent ? null : <HomeTips showInviteTip={groups.length === 0} />}
 
         {/* One bar, two strengths. The offer stands for as long as someone uses
             the app as a guest; it hardens into a warning once there is an item

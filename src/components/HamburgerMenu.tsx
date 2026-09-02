@@ -117,7 +117,7 @@ export function HamburgerMenu() {
                     key={group.id}
                     icon="people-outline"
                     label={group.name}
-                    onPress={() => go(`/group/${group.id}`)}
+                    onPress={() => go(`/group/${group.id}/members`)}
                   />
                 ))
               )}

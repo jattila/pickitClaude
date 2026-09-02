@@ -51,14 +51,21 @@ export function useShareFlow(groups: Group[]) {
     needsAccount?: boolean;
   } | null>(null);
 
-  /** Opens the circle a list is shared with. */
-  const openGroup = (groupId: string) => router.push(`/group/${groupId}`);
+  /**
+    * Opens the people a list is shared with.
+    *
+    * There used to be a screen between here and them, showing the group's lists
+    * and its shared items. The redesign moved both onto the home screen, which
+    * left that screen a near-copy of it — same title, same shape, and a "+ Új
+    * lista" button that quietly created an already-shared list. Members are what
+    * remains that exists nowhere else, so that is where this goes.
+    */
+  const openMembers = (groupId: string) => router.push(`/group/${groupId}/members`);
 
   /**
-   * Where a *newly created* circle lands: straight on the member list with the
-   * address prompt already open. A circle with nobody in it is a shared list
-   * shared with no one, so inviting is not a separate errand — it is the second
-   * half of the same action.
+   * Where a *newly created* group lands: the member list with the address prompt
+   * already open. A group with nobody in it is a list shared with no one, so
+   * inviting is not a separate errand — it is the second half of the action.
    */
   const openNewCircle = (groupId: string) =>
     router.push(`/group/${groupId}/members?invite=1`);
@@ -105,7 +112,7 @@ export function useShareFlow(groups: Group[]) {
     const { groupId } = await shareList(listId, { asMain: target.asMain, existingGroupId });
     // An existing circle already has its people; only a fresh one needs someone
     // invited into it right away.
-    if (existingGroupId) openGroup(groupId);
+    if (existingGroupId) openMembers(groupId);
     else openNewCircle(groupId);
   };
 
@@ -136,9 +143,9 @@ export function useShareFlow(groups: Group[]) {
       <PickerDialog
         visible={!!picking}
         title="Kivel osztod meg?"
-        message={`"${picking?.listName ?? ''}" — válassz egy meglévő kört, vagy hozz létre újat.`}
+        message={`"${picking?.listName ?? ''}" — válassz a már meghívott tagok közül, vagy hívj meg újakat.`}
         options={[
-          { key: NEW_CIRCLE, label: `Új kör: "${picking?.listName ?? ''}"` },
+          { key: NEW_CIRCLE, label: 'Új tagok meghívása' },
           ...groups.map((group) => ({
             key: group.id,
             label: group.name,
@@ -190,5 +197,5 @@ export function useShareFlow(groups: Group[]) {
     </>
   );
 
-  return { requestShare, openGroup, dialogs };
+  return { requestShare, openMembers, dialogs };
 }
