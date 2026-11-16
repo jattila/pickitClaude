@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { keyboardAvoidingBehavior } from '../src/utils/keyboardAvoiding';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../src/utils/keyboardAvoiding';
+import { useAndroidKeyboardPadding } from '../src/hooks/useKeyboardInset';
 import { useRouter } from 'expo-router';
 import {
   createUserWithEmailAndPassword,
@@ -15,6 +17,10 @@ import { PasswordInput } from '../src/components/PasswordInput';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const keyboardPadding = useAndroidKeyboardPadding();
+  // iOS lifts the form by the keyboard's height measured from the top of the
+  // screen, so the header has to be added back or the bottom row stays covered.
+  const headerHeight = useHeaderHeight();
   const { isConnected } = useNetworkStatus();
   const hasGuestList = useHasLocalData();
   const [name, setName] = useState('');
@@ -53,8 +59,15 @@ export default function SignUpScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={keyboardAvoidingBehavior}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={keyboardAvoidingBehavior}
+      keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + keyboardPadding }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Regisztráció</Text>
         {/* Only shown to someone who actually has a list to lose. It also names
             the condition — the move happens at verification, not here — because

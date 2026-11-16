@@ -20,6 +20,42 @@ const GAP = 8;
 const VENDOR_TOOLBAR_ALLOWANCE = 48;
 
 /**
+ * Bottom padding for a scrolling form on Android, so what sits below the
+ * focused field — the submit button above all — can come out from under the
+ * keyboard.
+ *
+ * The auth screens centre a short form in a ScrollView. On Android nothing
+ * shrinks that ScrollView when the keyboard opens: KeyboardAvoidingView is off
+ * there (see keyboardAvoiding.ts), and keyboard-controller keeps the window
+ * from resizing. So the keyboard simply covered the lower half. The button
+ * under the password field was hidden, and could not be scrolled to either,
+ * since as far as the ScrollView knew, everything already fitted.
+ *
+ * Padding the content by the keyboard's height pulls the centred form up into
+ * the part still visible, and on a phone too short for that, makes the rest
+ * scrollable. The vendor allowance is the same Samsung strip as below.
+ *
+ * iOS returns 0 — KeyboardAvoidingView is correct there.
+ */
+export function useAndroidKeyboardPadding(): number {
+  const [padding, setPadding] = useState(0);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const show = KeyboardEvents.addListener('keyboardDidShow', (event) =>
+      setPadding(event.height + VENDOR_TOOLBAR_ALLOWANCE)
+    );
+    const hide = KeyboardEvents.addListener('keyboardDidHide', () => setPadding(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  return padding;
+}
+
+/**
  * Bottom padding that keeps `ref` clear of the Android keyboard.
  *
  * Built on keyboard-controller's events rather than React Native's: RN reports

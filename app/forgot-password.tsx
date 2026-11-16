@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { keyboardAvoidingBehavior } from '../src/utils/keyboardAvoiding';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { keyboardAvoidingBehavior, keyboardVerticalOffset } from '../src/utils/keyboardAvoiding';
+import { useAndroidKeyboardPadding } from '../src/hooks/useKeyboardInset';
 import { sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { auth } from '../src/services/firebase';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
 
 export default function ForgotPasswordScreen() {
+  const keyboardPadding = useAndroidKeyboardPadding();
+  // iOS lifts the form by the keyboard's height measured from the top of the
+  // screen, so the header has to be added back or the bottom row stays covered.
+  const headerHeight = useHeaderHeight();
   const { isConnected } = useNetworkStatus();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
@@ -23,8 +29,15 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={keyboardAvoidingBehavior}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={keyboardAvoidingBehavior}
+      keyboardVerticalOffset={keyboardVerticalOffset(headerHeight)}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + keyboardPadding }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Elfelejtett jelszó</Text>
 
         {sent ? (
