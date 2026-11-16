@@ -5,11 +5,16 @@ import type { Group } from '../data/types';
 
 export function useGroups() {
   const user = useAuthStore((state) => state.user);
+  // The hamburger menu mounts this beside the verification gate, not behind it.
+  // Subscribing before the address is confirmed is refused by the rules, and a
+  // refused listener is dead for good: keyed on `user` alone it never came back
+  // after verification, and the menu showed no groups until a restart.
+  const emailVerified = useAuthStore((state) => state.emailVerified);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !emailVerified) {
       setGroups([]);
       setLoading(false);
       return;
@@ -20,7 +25,7 @@ export function useGroups() {
       setLoading(false);
     });
     return unsubscribe;
-  }, [user]);
+  }, [user, emailVerified]);
 
   return {
     groups,

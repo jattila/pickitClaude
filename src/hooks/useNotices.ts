@@ -29,10 +29,13 @@ export interface Notice {
  */
 export function useNotices() {
   const uid = useAuthStore((state) => state.user?.uid);
+  // Mounted at the root, beside the verification gate — the same reason as in
+  // useGroups: wait for a confirmed address, then subscribe once it is.
+  const emailVerified = useAuthStore((state) => state.emailVerified);
   const [notices, setNotices] = useState<Notice[]>([]);
 
   useEffect(() => {
-    if (!uid) {
+    if (!uid || !emailVerified) {
       setNotices([]);
       return;
     }
@@ -57,7 +60,7 @@ export function useNotices() {
       setNotices,
       []
     );
-  }, [uid]);
+  }, [uid, emailVerified]);
 
   const dismiss = async (noticeId: string) => {
     if (!uid) return;

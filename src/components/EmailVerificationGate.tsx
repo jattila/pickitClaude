@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendEmailVerification } from '@react-native-firebase/auth';
 import { auth } from '../services/firebase';
@@ -8,6 +8,37 @@ import { provisionVerifiedAccount } from '../services/provisioning';
 import { signOutFully } from '../services/session';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useHasLocalData } from '../hooks/useHasLocalData';
+import * as Linking from 'expo-linking';
+import { rememberPendingInvite } from '../data/local/pendingInvite';
+import { inviteCodeFromUrl } from '../utils/inviteMessage';
+
+// The last link already set aside. useURL keeps returning the most recent link
+// for the life of the process, so without this a gate shown again later — for
+// another account on the same phone — would revive an invite already used.
+let rememberedUrl: string | null = null;
+
+/**
+ * Says why a resend failed, because the fixes differ. Throttling — Firebase
+ * allows only a few verification mails per account in a short window, the one
+ * sent at registration included — is fixed by waiting, and meanwhile the first
+ * mail is usually sitting in spam. A deleted or disabled account is fixed by
+ * no amount of waiting.
+ */
+function resendErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case 'auth/too-many-requests':
+      return 'Nemrég már küldtünk levelet erre a címre, ezért most nem küldhetünk újat. Nézd meg a spam mappát is, vagy kérd újra néhány perc múlva.';
+    case 'auth/network-request-failed':
+      return 'Nem sikerült elérni a szervert. Ellenőrizd az internetkapcsolatot.';
+    case 'auth/user-not-found':
+    case 'auth/user-disabled':
+    case 'auth/user-token-expired':
+    case 'auth/invalid-user-token':
+      return 'Ez a fiók már nem érvényes. Jelentkezz ki, és regisztrálj vagy lépj be újra.';
+    default:
+      return 'Nem sikerült elküldeni. Várj egy kicsit, és próbáld újra.';
+  }
+}
 
 /**
  * Stands in for the whole app while a signed-in user's email is unconfirmed.
@@ -26,6 +57,37 @@ export function EmailVerificationGate() {
   const [resending, setResending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // An invite link tapped while this screen is up has nowhere to land: the
+  // app's routes are not mounted until the address is confirmed. Set aside for
+  // usePendingInviteResume to reopen afterwards, instead of being dropped.
+  const url = Linking.useURL();
+  useEffect(() => {
+    if (!url || url === rememberedUrl) return;
+    const code = inviteCodeFromUrl(url);
+    if (!code) return;
+    rememberedUrl = url;
+    rememberPendingInvite(code).catch(() => undefined);
+  }, [url]);
+
+  // The link is clicked in the mail app, and nothing tells this one. Checked
+  // again whenever the app comes back to the front — and once on opening, which
+  // covers a relaunch after the link was clicked — so the screen lifts by
+  // itself instead of waiting for "Megerősítettem". The root provisioning hook
+  // picks up from there, as it does after the button.
+  useEffect(() => {
+    if (!isConnected) return;
+    const quietCheck = () => {
+      refreshEmailVerified().catch((e: any) => {
+        if (__DEV__) console.warn('[verify] check failed:', e?.code, e?.message);
+      });
+    };
+    quietCheck();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') quietCheck();
+    });
+    return () => subscription.remove();
+  }, [isConnected]);
 
   const check = async () => {
     setError(null);
@@ -57,9 +119,9 @@ export function EmailVerificationGate() {
       const current = auth.currentUser;
       if (current) await sendEmailVerification(current);
       setNotice('Elküldtük újra a megerősítő e-mailt.');
-    } catch {
-      // Firebase throttles repeated sends; that is the common failure here.
-      setError('Nem sikerült elküldeni. Várj egy kicsit, és próbáld újra.');
+    } catch (e: any) {
+      if (__DEV__) console.warn('[verify] resend failed:', e?.code, e?.message);
+      setError(resendErrorMessage(e?.code));
     } finally {
       setResending(false);
     }
