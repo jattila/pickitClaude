@@ -51,7 +51,9 @@ export function useActiveShoppingList(
     const fallback = groups.find((group) => group.mainListId)?.mainListId ?? null;
     const listId = pointer ?? fallback;
 
-    const meta = [...personalLists, ...sharedLists].find((list) => list.id === listId) ?? null;
+    // Shared first: right after sharing, the list is briefly in both arrays, and
+    // the private copy has no group — the header would offer to share it again.
+    const meta = [...sharedLists, ...personalLists].find((list) => list.id === listId) ?? null;
 
     return {
       listId,
@@ -80,7 +82,9 @@ export function useShoppingListChoices(
     // Absent once it has been shared: it then appears below as a circle's list
     // instead, which is the same document under the name its owner gave it.
     const personal = personalLists.find((list) => list.id === personalListId);
-    if (personal) {
+    // The array check covers the moment between the two snapshots, when the
+    // list has already turned up among the shared ones but not yet left here.
+    if (personal && !sharedLists.some((list) => list.id === personal.id)) {
       choices.push({ listId: personal.id, name: personal.name, groupId: null, memberCount: 1 });
     }
 

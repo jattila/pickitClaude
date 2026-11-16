@@ -83,8 +83,13 @@ export default function ListsOverviewScreen() {
   // Every list that gets a row: my private ones plus the occasional lists that
   // came through a circle. The active shopping list is excluded — its items are
   // shown in full below, so a row pointing at the same thing is a second door.
+  //
+  // A list I share moves from the first query to the second, and the two
+  // listeners hear about it in separate snapshots — for a moment it is in both.
+  // The shared copy wins: it is the newer one, and it carries the group.
+  const sharedIds = new Set(sharedLists.map((list) => list.id));
   const listRows: ShoppingList[] = [
-    ...personalLists.filter((list) => list.id !== active.listId),
+    ...personalLists.filter((list) => list.id !== active.listId && !sharedIds.has(list.id)),
     ...sharedLists.filter((list) => list.id !== active.listId),
   ];
 
