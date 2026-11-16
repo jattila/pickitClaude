@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { signOutFully } from '../services/session';
 import { ConfirmDialog } from './ConfirmDialog';
+import { PromptDialog } from './PromptDialog';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { useGroups } from '../hooks/useGroups';
@@ -28,6 +29,7 @@ export function HamburgerMenu() {
   const { groups } = useGroups();
   const { isConnected } = useNetworkStatus();
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
+  const [enteringCode, setEnteringCode] = useState(false);
 
   const primaryLine = user ? user.displayName || user.email || 'Fiók' : 'Vendég';
   const secondaryLine = user
@@ -123,6 +125,17 @@ export function HamburgerMenu() {
             </>
           ) : null}
 
+          {/* For guests as well: most invitees have no account yet when the code
+              arrives. The join screen remembers it and reopens it once they
+              have one. Signed in, joining is a server call, hence the offline
+              lock — a guest only has the code set aside, which works offline. */}
+          <MenuItem
+            icon="enter-outline"
+            label="Csatlakozás meghívó kóddal"
+            disabled={!!user && !isConnected}
+            onPress={() => setEnteringCode(true)}
+          />
+
           <View style={styles.divider} />
 
           {user ? (
@@ -165,6 +178,17 @@ export function HamburgerMenu() {
           setConfirmingSignOut(false);
           closeMenu();
           signOutFully();
+        }}
+      />
+
+      <PromptDialog
+        visible={enteringCode}
+        title="Meghívó kód"
+        placeholder="pl. AB2C3D4E"
+        onCancel={() => setEnteringCode(false)}
+        onConfirm={(code) => {
+          setEnteringCode(false);
+          go(`/join/${code.trim().toUpperCase()}`);
         }}
       />
     </View>

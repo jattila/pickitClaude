@@ -8,6 +8,7 @@ import { getInvitePreview, redeemInvite } from '../../src/services/groups';
 import { setActiveShoppingList } from '../../src/services/userProfile';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { useUiStore } from '../../src/store/uiStore';
+import { rememberPendingInvite } from '../../src/data/local/pendingInvite';
 
 export default function JoinScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
@@ -30,6 +31,15 @@ export default function JoinScreen() {
       })
       .catch(() => setPreviewError('Nem sikerült betölteni a meghívót.'));
   }, [code, user, isConnected]);
+
+  // Nobody joins without a verified account, and making one leaves the app for
+  // the mailbox. Remembered so the invite reopens by itself once they are back
+  // and signed in (usePendingInviteResume), instead of sending them to dig the
+  // message out again.
+  useEffect(() => {
+    if (user || !code) return;
+    rememberPendingInvite(code).catch(() => undefined);
+  }, [user, code]);
 
   const handleJoin = async () => {
     setError(null);
@@ -70,12 +80,15 @@ export default function JoinScreen() {
       <View style={styles.container}>
         <Text style={styles.title}>Regisztráció szükséges</Text>
         <Text style={styles.text}>
-          Csoporthoz csatlakozáshoz előbb regisztrálnod kell egy fiókot.
+          Csoporthoz csatlakozáshoz fiók kell. A meghívót megjegyeztük: ha regisztráltál és
+          megerősítetted az e-mail címed, vagy bejelentkeztél, magától újra megnyílik.
         </Text>
-        <Pressable style={styles.button} onPress={() => router.push('/sign-up')}>
+        {/* Replace, not push: the invite comes back on its own afterwards, and
+            leaving this screen underneath would show it twice. */}
+        <Pressable style={styles.button} onPress={() => router.replace('/sign-up')}>
           <Text style={styles.buttonLabel}>Regisztráció</Text>
         </Pressable>
-        <Pressable onPress={() => router.push('/sign-in')}>
+        <Pressable onPress={() => router.replace('/sign-in')}>
           <Text style={styles.link}>Már van fiókom, bejelentkezem</Text>
         </Pressable>
       </View>

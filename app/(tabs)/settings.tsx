@@ -116,6 +116,12 @@ export default function SettingsScreen() {
           <Pressable style={styles.secondaryButton} onPress={() => router.push('/sign-in')}>
             <Text style={styles.secondaryButtonLabel}>Már van fiókom</Text>
           </Pressable>
+          {/* Offered to guests too: most invitees are guests when the code
+              arrives. The join screen remembers it and sends them to make an
+              account, and it reopens on its own once they have one. */}
+          <Pressable style={styles.secondaryButton} onPress={() => setEnteringCode(true)}>
+            <Text style={styles.secondaryButtonLabel}>Csatlakozás meghívó kóddal</Text>
+          </Pressable>
         </View>
       )}
 

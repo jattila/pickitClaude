@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useGroupMembers } from '../../../../../src/hooks/useGroupMembers';
 import { useGroups } from '../../../../../src/hooks/useGroups';
@@ -19,23 +18,8 @@ import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
 import { PromptDialog } from '../../../../../src/components/PromptDialog';
 import { useGroupInvites } from '../../../../../src/hooks/useGroupInvites';
 import { useSharedLists } from '../../../../../src/hooks/useSharedLists';
+import { buildInviteMessage } from '../../../../../src/utils/inviteMessage';
 import type { GroupMember } from '../../../../../src/data/types';
-
-/**
- * The deep link that opens this invite, in whichever variant of the app is
- * sending it.
- *
- * The scheme used to be written out as `pickit://`, which is the released app's.
- * The development build registers `pickit-dev://` instead, so an invite created
- * while testing opened the *tester* app on a phone that had both — or nothing at
- * all on a phone that had neither. Reading it from the running app's own config
- * keeps the link pointing at the app that produced it.
- */
-function inviteLink(code: string): string {
-  const scheme = Constants.expoConfig?.scheme;
-  const name = Array.isArray(scheme) ? scheme[0] : scheme;
-  return `${name ?? 'pickit'}://join/${code}`;
-}
 
 export default function GroupMembersScreen() {
   const { groupId, invite: autoInvite } = useLocalSearchParams<{ groupId: string; invite?: string }>();
@@ -121,9 +105,7 @@ export default function GroupMembersScreen() {
       // invitee should already be in the list when it comes back.
       await refreshInvites();
       const groupName = group?.name ?? 'a csoportomhoz';
-      await Share.share({
-        message: `Csatlakozz a(z) "${groupName}" csoporthoz a PickIt appban!\n\n${inviteLink(code)}\n\nVagy add meg ezt a kódot: ${code}`,
-      });
+      await Share.share({ message: buildInviteMessage(groupName, code) });
     } catch (e: any) {
       setError(e?.message ?? 'Nem sikerült meghívót létrehozni.');
     } finally {
