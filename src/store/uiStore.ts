@@ -32,6 +32,14 @@ interface UiState {
    */
   joinedListNotice: string | null;
   setJoinedListNotice: (name: string | null) => void;
+  /**
+   * The catalog behind the suggestions on the screen the person was last typing
+   * into — null for their own, a group id for a shared list's. "Katalógus" opens
+   * this one. The route can't answer it: the active shopping list lives at `/`
+   * whether it is private or shared, so only the screen showing it knows.
+   */
+  catalogGroupId: string | null;
+  setCatalogGroupId: (groupId: string | null) => void;
 }
 
 /** Drives the global hamburger-menu overlay mounted once in the root layout. */
@@ -51,4 +59,6 @@ export const useUiStore = create<UiState>((set) => ({
   setLocalListKeptNotice: (value) => set({ localListKeptNotice: value }),
   joinedListNotice: null,
   setJoinedListNotice: (name) => set({ joinedListNotice: name }),
+  catalogGroupId: null,
+  setCatalogGroupId: (groupId) => set({ catalogGroupId: groupId }),
 }));

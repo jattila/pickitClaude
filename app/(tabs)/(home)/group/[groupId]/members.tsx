@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useGroupMembers } from '../../../../../src/hooks/useGroupMembers';
 import { useGroups } from '../../../../../src/hooks/useGroups';
+import { useCatalogScope } from '../../../../../src/hooks/useCatalogScope';
 import {
   backfillMemberEmails,
   createInvite,
@@ -41,6 +42,7 @@ export default function GroupMembersScreen() {
   const { isConnected } = useNetworkStatus();
   const { members, loading } = useGroupMembers(groupId);
   const { groups } = useGroups();
+  useCatalogScope(groupId);
   const currentUid = useAuthStore((state) => state.user?.uid);
   const [revealedUid, setRevealedUid] = useState<string | null>(null);
   const group = groups.find((g) => g.id === groupId);

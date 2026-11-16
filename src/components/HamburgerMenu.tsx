@@ -10,7 +10,6 @@ import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { useGroups } from '../hooks/useGroups';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
-import { resolveCatalogPath } from '../utils/catalogPath';
 
 const PANEL_WIDTH = Math.min(300, Dimensions.get('window').width * 0.8);
 
@@ -96,8 +95,8 @@ export function HamburgerMenu() {
           <MenuItem
             icon="pricetags-outline"
             label="Katalógus"
-            active={pathname.endsWith('/catalog')}
-            onPress={() => go(resolveCatalogPath(pathname))}
+            active={pathname === '/catalog'}
+            onPress={() => go('/catalog')}
           />
           <MenuItem
             icon="settings-outline"

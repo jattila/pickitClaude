@@ -1,25 +1,19 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { useCatalogEntries } from '../../../../../src/hooks/useCatalogEntries';
-import { useGroups } from '../../../../../src/hooks/useGroups';
-import { CatalogRow } from '../../../../../src/components/CatalogRow';
-import { PromptDialog } from '../../../../../src/components/PromptDialog';
-import { ConfirmDialog } from '../../../../../src/components/ConfirmDialog';
-import type { CatalogEntry } from '../../../../../src/data/types';
+import { useCatalogEntries } from '../hooks/useCatalogEntries';
+import { CatalogRow } from './CatalogRow';
+import { PromptDialog } from './PromptDialog';
+import { ConfirmDialog } from './ConfirmDialog';
+import type { CatalogEntry } from '../data/types';
 
-export default function GroupCatalogScreen() {
-  const { groupId } = useLocalSearchParams<{ groupId: string }>();
-  const { groups } = useGroups();
-  const group = groups.find((g) => g.id === groupId);
+/** The catalog editor for one scope: null = personal, otherwise that group's. */
+export function CatalogView({ groupId }: { groupId: string | null }) {
   const { entries, loading, renameEntry, deleteEntry } = useCatalogEntries(groupId);
   const [renamingEntry, setRenamingEntry] = useState<CatalogEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<CatalogEntry | null>(null);
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: group ? `${group.name} katalógusa` : 'Katalógus' }} />
-
       {!loading && entries.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>Még nincs egyetlen termék sem a katalógusban.</Text>

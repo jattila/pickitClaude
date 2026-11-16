@@ -9,6 +9,7 @@ import { useLists } from '../../../src/hooks/useLists';
 import { useGroups } from '../../../src/hooks/useGroups';
 import { useSharedLists } from '../../../src/hooks/useSharedLists';
 import { useActiveShoppingList } from '../../../src/hooks/useActiveShoppingList';
+import { useCatalogScope } from '../../../src/hooks/useCatalogScope';
 import { useShareFlow } from '../../../src/hooks/useShareFlow';
 import { unshareList } from '../../../src/services/sharing';
 import { useItemsPanel } from '../../../src/hooks/useItemsPanel';
@@ -43,6 +44,7 @@ export default function ListsOverviewScreen() {
   // One list, no picker. Which one is decided by sharing and joining; changing
   // it deliberately lives in Beállítások, not here.
   const active = useActiveShoppingList(groups, personalLists, sharedLists);
+  useCatalogScope(active.groupId);
 
   const {
     scrollViewRef,

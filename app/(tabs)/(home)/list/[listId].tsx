@@ -9,6 +9,7 @@ import { useListMeta } from '../../../../src/hooks/useListMeta';
 import { useItemsPanel } from '../../../../src/hooks/useItemsPanel';
 import { useGroups } from '../../../../src/hooks/useGroups';
 import { useShareFlow } from '../../../../src/hooks/useShareFlow';
+import { useCatalogScope } from '../../../../src/hooks/useCatalogScope';
 import { ItemRow } from '../../../../src/components/ItemRow';
 import { SectionHeaderRow } from '../../../../src/components/SectionHeaderRow';
 import { ItemNameInput } from '../../../../src/components/ItemNameInput';
@@ -17,6 +18,7 @@ import { HeaderActionButton } from '../../../../src/components/HeaderActionButto
 export default function ListDetailScreen() {
   const { listId } = useLocalSearchParams<{ listId: string }>();
   const list = useListMeta(listId);
+  useCatalogScope(list?.groupId);
   const headerHeight = useHeaderHeight();
   const { ref: keyboardRef, inset: keyboardInset } = useKeyboardInset();
   const { groups } = useGroups();
