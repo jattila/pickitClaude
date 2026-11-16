@@ -25,7 +25,12 @@ export function watchQuery<T>(
   return onSnapshot(
     query,
     (snap) => onChange(snap ? toValue(snap) : fallback),
-    () => onChange(fallback)
+    (error) => {
+      // Falling back is right for the user, but in development it also hides
+      // why a screen shows the wrong thing — say what was refused.
+      if (__DEV__) console.warn('[firestore] query watch failed:', (error as any)?.code, error?.message);
+      onChange(fallback);
+    }
   );
 }
 
@@ -38,6 +43,9 @@ export function watchDoc<T>(
   return onSnapshot(
     ref,
     (snap) => onChange(snap ? toValue(snap) : fallback),
-    () => onChange(fallback)
+    (error) => {
+      if (__DEV__) console.warn('[firestore] doc watch failed:', ref.path, (error as any)?.code, error?.message);
+      onChange(fallback);
+    }
   );
 }

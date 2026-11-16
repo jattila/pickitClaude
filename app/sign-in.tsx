@@ -31,7 +31,28 @@ export default function SignInScreen() {
       if (keptLocalList) useUiStore.getState().setLocalListKeptNotice(true);
       router.replace('/');
     } catch (e: any) {
-      setError('Hibás email cím vagy jelszó.');
+      if (__DEV__) console.warn('[sign-in] failed:', e?.code, e?.message);
+      // Every failure used to read "wrong email or password" — including the
+      // temporary lockout after repeated attempts, where retrying the same
+      // (correct) password only extends it.
+      if (
+        e?.code === 'auth/invalid-credential' ||
+        e?.code === 'auth/wrong-password' ||
+        e?.code === 'auth/user-not-found' ||
+        e?.code === 'auth/invalid-email'
+      ) {
+        setError('Hibás email cím vagy jelszó.');
+      } else if (e?.code === 'auth/too-many-requests') {
+        setError(
+          'Túl sok sikertelen próbálkozás miatt a belépés átmenetileg le van tiltva. Várj néhány percet, vagy kérj új jelszót.'
+        );
+      } else if (e?.code === 'auth/network-request-failed') {
+        setError('Nem sikerült elérni a szervert. Ellenőrizd az internetkapcsolatot.');
+      } else if (e?.code === 'auth/user-disabled') {
+        setError('Ez a fiók le van tiltva.');
+      } else {
+        setError('Nem sikerült bejelentkezni. Próbáld újra.');
+      }
     } finally {
       setSubmitting(false);
     }
