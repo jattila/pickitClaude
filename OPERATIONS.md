@@ -243,6 +243,11 @@ curl -sS "https://digitalassetlinks.googleapis.com/v1/assetlinks:check?source.we
 A letöltési linkek a `hosting/public/join/index.html`-ben vannak. Ezek
 módosításához csak a fenti deploy kell, új build nem.
 
+**A `firebase.json`-ba nem kerülhet aposztróf (`'`).** A React Native Firebase
+iOS-es buildszkriptje aposztrófok közé illesztve olvassa be a fájlt, és egy
+benne lévő `'` eltöri az iOS buildet („Failed to parse firebase.json”). Ezért
+van a Content-Security-Policy a HTML-ben `<meta>` tagként, nem fejlécként.
+
 ---
 
 ## Ami most nyitva van
