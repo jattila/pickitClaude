@@ -34,13 +34,25 @@ export const redeemInvite = onCall(async (request) => {
       return { groupId: invite.groupId, groupName: invite.groupName, alreadyMember: true };
     }
 
-    const userSnap = await tx.get(userRef);
+    const memberRef = groupRef.collection('members').doc(uid);
+    const [userSnap, memberSnap] = await Promise.all([tx.get(userRef), tx.get(memberRef)]);
+
+    // Suspension takes the uid out of memberIds, so the check above lets a
+    // suspended member through. Codes are multi-use and may be forwarded, so
+    // without this an old or passed-on code would quietly undo the owner's
+    // decision, and the set below would also wipe the suspended flag.
+    if (memberSnap.exists && memberSnap.data()!.suspended === true) {
+      throw new HttpsError(
+        'permission-denied',
+        'Ebből a csoportból fel lettél függesztve. A csoport tulajdonosa a tagok listájában tud visszaengedni.'
+      );
+    }
+
     const displayName = userSnap.exists ? userSnap.data()!.displayName ?? '' : '';
     // Denormalized so other members can see it — they can't read this user's
     // own users/{uid} doc, which also holds settings and digest state.
     const email = userSnap.exists ? userSnap.data()!.email ?? null : null;
 
-    const memberRef = groupRef.collection('members').doc(uid);
     tx.update(groupRef, {
       memberIds: FieldValue.arrayUnion(uid),
       updatedAt: Date.now(),
