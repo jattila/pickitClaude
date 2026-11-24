@@ -9,5 +9,15 @@
         "62:CA:6A:97:B4:E9:4C:48:2B:A3:B6:3C:50:F3:8C:83:1E:19:F4:0D:88:DB:9A:C2:1E:97:DA:1A:2F:C6:D2:70"
       ]
     }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pickitclaude.app.dev",
+      "sha256_cert_fingerprints": [
+        "E3:9A:9F:63:0A:D9:E4:06:45:9C:B5:1D:A8:F4:DF:11:32:FE:C0:8C:5D:A1:6E:61:FF:8D:5E:84:4C:A4:15:DA"
+      ]
+    }
   }
 ]
