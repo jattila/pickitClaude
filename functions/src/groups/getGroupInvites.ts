@@ -50,19 +50,43 @@ export const getGroupInvites = onCall(async (request) => {
     .where('redeemedAt', '==', null)
     .get();
 
+  // Addresses already in the group. Someone can join through a code that was
+  // forwarded to them rather than their own, and their own invite would then
+  // keep showing them as still to come.
+  const membersSnap = await groupSnap.ref.collection('members').get();
+  const memberEmails = new Set(
+    membersSnap.docs
+      .map((doc) => doc.data().email)
+      .filter((email): email is string => typeof email === 'string' && !!email)
+      .map((email) => email.toLowerCase())
+  );
+
+  const live = snap.docs
+    .map((doc) => ({ code: doc.id, ...doc.data() }) as InviteDoc)
+    // Expired and revoked invites are dead ends — showing them as "invited"
+    // would promise something that can no longer happen.
+    .filter((invite) => !invite.revoked && (invite.expiresAt ?? 0) > now)
+    // Invites created before this feature carry no address; there is nobody
+    // to name, so they stay out of the list rather than showing as blank.
+    .filter(
+      (invite): invite is InviteDoc & { invitedEmail: string } =>
+        typeof invite.invitedEmail === 'string' && !!invite.invitedEmail
+    )
+    .filter((invite) => !memberEmails.has(invite.invitedEmail.toLowerCase()));
+
+  // One row per address, the newest. createInvite now reuses an open invite,
+  // but addresses invited twice before that change still have two.
+  const newestByEmail = new Map<string, InviteDoc & { invitedEmail: string }>();
+  for (const invite of live) {
+    const seen = newestByEmail.get(invite.invitedEmail);
+    if (!seen || (invite.createdAt ?? 0) > (seen.createdAt ?? 0)) {
+      newestByEmail.set(invite.invitedEmail, invite);
+    }
+  }
+
   const auth = getAuth();
   const invites = await Promise.all(
-    snap.docs
-      .map((doc) => ({ code: doc.id, ...doc.data() }) as InviteDoc)
-      // Expired and revoked invites are dead ends — showing them as "invited"
-      // would promise something that can no longer happen.
-      .filter((invite) => !invite.revoked && (invite.expiresAt ?? 0) > now)
-      // Invites created before this feature carry no address; there is nobody
-      // to name, so they stay out of the list rather than showing as blank.
-      .filter(
-        (invite): invite is InviteDoc & { invitedEmail: string } =>
-          typeof invite.invitedEmail === 'string' && !!invite.invitedEmail
-      )
+    [...newestByEmail.values()]
       .map(async (invite: InviteDoc & { invitedEmail: string }) => {
         // No account yet, or an account that hasn't confirmed its address: the
         // difference matters to whoever sent the invite, because the second

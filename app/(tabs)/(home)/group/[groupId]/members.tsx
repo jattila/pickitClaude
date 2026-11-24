@@ -19,6 +19,7 @@ import { PromptDialog } from '../../../../../src/components/PromptDialog';
 import { useGroupInvites } from '../../../../../src/hooks/useGroupInvites';
 import { useSharedLists } from '../../../../../src/hooks/useSharedLists';
 import { buildInviteMessage } from '../../../../../src/utils/inviteMessage';
+import { INVITE_VALID_DAYS } from '../../../../../src/config/invites';
 import type { GroupMember } from '../../../../../src/data/types';
 
 export default function GroupMembersScreen() {
@@ -32,6 +33,7 @@ export default function GroupMembersScreen() {
   const group = groups.find((g) => g.id === groupId);
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pendingSuspend, setPendingSuspend] = useState<GroupMember | null>(null);
   const [working, setWorking] = useState(false);
   const [enteringEmail, setEnteringEmail] = useState(false);
@@ -98,9 +100,17 @@ export default function GroupMembersScreen() {
 
   const handleInvite = async (email: string) => {
     setError(null);
+    setNotice(null);
     setCreatingInvite(true);
     try {
-      const code = await createInvite(groupId, email);
+      const { code, reused } = await createInvite(groupId, email);
+      // Said before the share sheet covers the screen, so it is there when the
+      // sheet closes: the same code went out again, not a second invite.
+      if (reused) {
+        setNotice(
+          `${email} már kapott meghívót. Ugyanazt a kódot küldöd újra, és ${INVITE_VALID_DAYS} napig újra érvényes.`
+        );
+      }
       // Refresh before sharing: the share sheet suspends this screen, and the
       // invitee should already be in the list when it comes back.
       await refreshInvites();
@@ -207,6 +217,7 @@ export default function GroupMembersScreen() {
       {!isConnected ? (
         <Text style={styles.error}>Nincs internetkapcsolat — a meghívó készítéséhez kapcsolat kell.</Text>
       ) : null}
+      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Pressable
@@ -331,6 +342,12 @@ const styles = StyleSheet.create({
   },
   error: {
     color: '#D9534F',
+    fontSize: 13,
+    textAlign: 'center',
+    padding: 12,
+  },
+  notice: {
+    color: '#666',
     fontSize: 13,
     textAlign: 'center',
     padding: 12,

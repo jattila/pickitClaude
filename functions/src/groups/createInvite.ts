@@ -1,6 +1,7 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { requireVerifiedUid } from '../lib/requireVerified';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import { generateInviteCode } from '../lib/generateCode';
 
 const EXPIRES_IN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -33,7 +34,48 @@ export const createInvite = onCall(async (request) => {
     throw new HttpsError('permission-denied', 'Nem vagy tagja ennek a csoportnak.');
   }
 
+  // Someone already in the group. An invite would only add a pending row beside
+  // their member row. A suspended member keeps their member document, and is
+  // let back in from the member list, not through a fresh code.
+  const account = await getAuth().getUserByEmail(invitedEmail).catch(() => null);
+  if (account) {
+    const memberSnap = await groupSnap.ref.collection('members').doc(account.uid).get();
+    if (memberSnap.exists) {
+      if (memberSnap.data()?.suspended) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Ez a cím egy felfüggesztett tagé. A tagok listájában tudod visszaengedélyezni.'
+        );
+      }
+      throw new HttpsError('already-exists', 'Ez a cím már a csoport egyik tagjáé.');
+    }
+  }
+
   const invitesRef = db.collection('invites');
+  const now = Date.now();
+
+  // Asked twice for the same address: hand back the invite that is still open
+  // instead of minting a second code for the same person. Two pending rows for
+  // one address, each withdrawable separately, are not what anyone meant.
+  // Inviting again means sending again, usually because the first message was
+  // lost, so the week starts over.
+  const open = await invitesRef
+    .where('groupId', '==', groupId)
+    .where('invitedEmail', '==', invitedEmail)
+    .where('redeemedAt', '==', null)
+    .get();
+  const live = open.docs.find((doc) => {
+    const data = doc.data();
+    return !data.revoked && (data.expiresAt ?? 0) > now;
+  });
+  if (live) {
+    await live.ref.update({
+      expiresAt: now + EXPIRES_IN_MS,
+      expiresAtTime: Timestamp.fromMillis(now + EXPIRES_IN_MS),
+    });
+    return { code: live.id, reused: true };
+  }
+
   let code = '';
   for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
     const candidate = generateInviteCode();
@@ -45,7 +87,6 @@ export const createInvite = onCall(async (request) => {
   }
   if (!code) throw new HttpsError('internal', 'Nem sikerült egyedi kódot generálni, próbáld újra.');
 
-  const now = Date.now();
   await invitesRef.doc(code).set({
     groupId,
     groupName: groupData.name ?? '',
@@ -65,5 +106,5 @@ export const createInvite = onCall(async (request) => {
     revoked: false,
   });
 
-  return { code };
+  return { code, reused: false };
 });

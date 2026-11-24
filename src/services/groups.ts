@@ -158,13 +158,23 @@ export function subscribeGroupMembers(groupId: string, onChange: (members: Group
   return watchQuery(q, (snap) => snap.docs.map(toGroupMember), onChange, []);
 }
 
-export async function createInvite(groupId: string, email: string): Promise<string> {
-  const call = httpsCallable<{ groupId: string; email: string }, { code: string }>(
+export interface CreatedInvite {
+  code: string;
+  /**
+   * True when the address already had an open invite and this is that one
+   * again, with its week restarted. False from a server deployed before reuse
+   * existed, which never says.
+   */
+  reused: boolean;
+}
+
+export async function createInvite(groupId: string, email: string): Promise<CreatedInvite> {
+  const call = httpsCallable<{ groupId: string; email: string }, { code: string; reused?: boolean }>(
     functions,
     'createInvite'
   );
   const result = await call({ groupId, email });
-  return result.data.code;
+  return { code: result.data.code, reused: result.data.reused === true };
 }
 
 /** 'invited' = no account yet, or one that simply hasn't joined; 'awaiting-verification' = account exists but its address is unconfirmed. */
