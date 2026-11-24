@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pickitclaude.app",
+      "sha256_cert_fingerprints": [
+        "64:07:B2:AF:3C:B9:34:82:17:3A:91:E7:83:89:34:21:74:D8:D3:F7:4E:16:A6:22:31:2E:4F:D1:29:B5:A4:63",
+        "62:CA:6A:97:B4:E9:4C:48:2B:A3:B6:3C:50:F3:8C:83:1E:19:F4:0D:88:DB:9A:C2:1E:97:DA:1A:2F:C6:D2:70"
+      ]
+    }
+  }
+]

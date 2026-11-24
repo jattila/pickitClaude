@@ -11,6 +11,24 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  */
 const IS_DEV = process.env.APP_VARIANT === 'development';
 
+/**
+ * Invite links are https links on our Firebase Hosting site rather than
+ * `pickit://` ones. Messengers and mail clients make https links tappable and
+ * leave custom schemes as plain text; and when the app isn't installed, the
+ * same link opens a page with the code and where to get the app instead of
+ * doing nothing.
+ *
+ * The site proves it speaks for the app through the two files under
+ * hosting/public/.well-known — the app IDs and signing keys there must match
+ * the builds, or the OS quietly opens the browser instead.
+ *
+ * The development build answers under /dev/join/ so that on a phone that has
+ * both, each link opens the build that produced it (app/+native-intent.tsx
+ * folds it back onto the same /join/[code] screen).
+ */
+const INVITE_HOST = 'pickitclaude.web.app';
+const INVITE_PATH = IS_DEV ? '/dev/join' : '/join';
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...(config as ExpoConfig),
   name: IS_DEV ? 'PickIt Dev' : (config.name as string),
@@ -30,6 +48,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     googleServicesFile:
       process.env.GOOGLE_SERVICE_INFO_PLIST ??
       (IS_DEV ? './GoogleService-Info.dev.plist' : config.ios?.googleServicesFile),
+    associatedDomains: [`applinks:${INVITE_HOST}`],
     entitlements: {
       ...config.ios?.entitlements,
       // "production" because the development profile builds for internal
@@ -49,5 +68,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.android,
     package: IS_DEV ? 'com.pickitclaude.app.dev' : config.android?.package,
     googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? config.android?.googleServicesFile,
+    intentFilters: [
+      {
+        action: 'VIEW',
+        // Without autoVerify Android 12+ never opens the app from the link on
+        // its own; it asks the site (assetlinks.json) at install time.
+        autoVerify: true,
+        data: [{ scheme: 'https', host: INVITE_HOST, pathPrefix: `${INVITE_PATH}/` }],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
+  },
+  extra: {
+    ...config.extra,
+    inviteBaseUrl: `https://${INVITE_HOST}${INVITE_PATH}`,
   },
 });

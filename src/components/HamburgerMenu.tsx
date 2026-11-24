@@ -11,6 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { useGroups } from '../hooks/useGroups';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { inviteCodeFromInput } from '../utils/inviteMessage';
 
 const PANEL_WIDTH = Math.min(300, Dimensions.get('window').width * 0.8);
 
@@ -183,12 +184,12 @@ export function HamburgerMenu() {
 
       <PromptDialog
         visible={enteringCode}
-        title="Meghívó kód"
+        title="Meghívó kód vagy link"
         placeholder="pl. AB2C3D4E"
         onCancel={() => setEnteringCode(false)}
         onConfirm={(code) => {
           setEnteringCode(false);
-          go(`/join/${code.trim().toUpperCase()}`);
+          go(`/join/${inviteCodeFromInput(code)}`);
         }}
       />
     </View>

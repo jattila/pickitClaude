@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Meghívó a PickIt appba</title>
+  <link rel="icon" href="/favicon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/join.js" defer></script>
+</head>
+<body>
+  <main>
+    <img class="logo" src="/assets/icon.png" alt="" width="72" height="72">
+    <h1>Meghívót kaptál a PickIt appba</h1>
+    <p class="lead">A PickIt közös bevásárlólista: amit valaki megvesz, azt a többiek azonnal látják.</p>
+
+    <section id="invite" hidden>
+      <p class="label">A meghívó kódod</p>
+      <p class="code"><span id="code"></span></p>
+      <button type="button" id="copy" class="secondary">Kód másolása</button>
+      <p id="dev-note" class="note" hidden>Ez a fejlesztői változat meghívója.</p>
+    </section>
+
+    <section id="missing" hidden>
+      <p class="note">Ebből a linkből hiányzik a meghívó kód. Kérd el újra attól, aki küldte.</p>
+    </section>
+
+    <section id="have-app" hidden>
+      <h2>Megvan már az app?</h2>
+      <a id="open" class="button" href="#">Megnyitás az appban</a>
+      <p class="note">Ha a gomb nem nyitja meg, az appban: Beállítások → Csatlakozás meghívó kóddal, és írd be a fenti kódot.</p>
+    </section>
+
+    <section id="get-app" hidden>
+      <h2>Még nincs meg az app?</h2>
+      <div class="store" id="android">
+        <h3>Android</h3>
+        <a class="button secondary" href="https://play.google.com/apps/internaltest/4701288697552929817" rel="noreferrer">Letöltés a Google Playről</a>
+        <p class="note">Tesztidőszak: a letöltés csak akkor működik, ha a Google-fiókodat felvették a tesztelők közé. Ha nem engedi, szólj annak, aki a meghívót küldte.</p>
+      </div>
+      <div class="store" id="ios">
+        <h3>iPhone</h3>
+        <p class="note">Tesztidőszak: iPhone-ra a TestFlight appon keresztül lehet telepíteni. Ehhez kérj meghívót attól, aki ezt a linket küldte.</p>
+      </div>
+      <h3>Utána</h3>
+      <ol>
+        <li>Nyisd meg az appot, regisztrálj, és erősítsd meg az e-mail címed.</li>
+        <li>Nyisd meg újra ezt a linket, vagy az appban: Beállítások → Csatlakozás meghívó kóddal.</li>
+      </ol>
+    </section>
+  </main>
+</body>
+</html>

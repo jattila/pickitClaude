@@ -348,3 +348,35 @@ lenne.
 **Meghívó visszavonása:** kibővítve a meghívó küldőjére. Meghívni eddig is bármelyik
 tag tudott (`createInvite` a `memberIds`-t nézi), visszavonni viszont csak a
 tulajdonos — így aki elgépelt egy címet, egy hetet várhatott a lejáratra.
+
+## Meghívó link https-en, saját scheme helyett
+
+**A helyzet:** a meghívóban `pickit://join/KÓD` link állt. A legtöbb üzenetküldő és
+levelezőprogram ezt nem teszi kattinthatóvá, és akinél nincs meg az app, annál nem
+nyit meg semmit. A meghívottak többségénél pedig éppen ez a helyzet.
+
+**A döntés:** a link `https://pickitclaude.web.app/join/KÓD`. Ha az app telepítve
+van, az iOS (Universal Links) és az Android (App Links) az appnak adja át. Ha nincs,
+egy statikus oldal nyílik meg a kóddal, egy „Megnyitás az appban" gombbal (ez a
+régi scheme-es link) és a letöltési linkekkel. Saját domain híján a Firebase
+Hosting alapcíme, mert ugyanebben a projektben van, és nem kerül pénzbe.
+
+**Miért `/dev/join/` a fejlesztői változatnak:** a fejlesztő telefonján mindkét
+build fent van. Közös útvonalnál iOS-en mindig a listában elsőként szereplő app
+nyílna meg, Androidon pedig választó ablak jönne. Külön útvonallal mindkét link
+abban a buildben nyílik meg, amelyik készítette. Ugyanezt az elvet követte a
+`pickit-dev://` scheme is. Az appon belül az `app/+native-intent.tsx` visszahajtja
+a `/join/[code]` képernyőre.
+
+**Miért nincs a weboldalon a csoport neve:** ahhoz az oldalnak a szervert kellene
+hívnia. Ez App Check nélkül futna, és a kikényszerítés bekapcsolása után elromlana.
+A kód és a letöltés elég ahhoz, hogy az illető eljusson az appig, ahol a név már
+megjelenik.
+
+**Referrer-Policy: no-referrer:** a kód az URL-ben van. Nélküle a Play vagy a
+TestFlight oldala megkapná a Referer fejlécben.
+
+**Ára:** új natív buildek kellenek (`associatedDomains`, `intentFilters`), és a két
+ellenőrzőfájlt karban kell tartani, ha az aláíró kulcs vagy a Team ID változik
+(OPERATIONS.md 15. pont). A régi buildeken a link a weboldalt nyitja meg, ahonnan
+a gomb a régi módon továbbviszi az appba, tehát semmi nem romlik el.

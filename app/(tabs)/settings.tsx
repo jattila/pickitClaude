@@ -17,6 +17,7 @@ import { setActiveShoppingList } from '../../src/services/userProfile';
 import { deleteGroup, leaveGroup, renameGroup } from '../../src/services/groups';
 import { FirestoreListsRepository } from '../../src/data/cloud/FirestoreListsRepository';
 import { resetDeviceState } from '../../src/services/devReset';
+import { inviteCodeFromInput } from '../../src/utils/inviteMessage';
 
 const WINDOW_OPTIONS = [
   { value: 15, label: '15 perc' },
@@ -335,12 +336,12 @@ export default function SettingsScreen() {
 
       <PromptDialog
         visible={enteringCode}
-        title="Meghívó kód"
+        title="Meghívó kód vagy link"
         placeholder="pl. AB2C3D4E"
         onCancel={() => setEnteringCode(false)}
         onConfirm={(code) => {
           setEnteringCode(false);
-          router.push(`/join/${code.trim().toUpperCase()}`);
+          router.push(`/join/${inviteCodeFromInput(code)}`);
         }}
       />
     </ScrollView>

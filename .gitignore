@@ -56,3 +56,6 @@ pickit-full-prompts.md
 
 # JetBrains IDE workspace — per-machine editor state, not project config.
 .idea/
+
+# Firebase Hosting deploy cache
+.firebase/

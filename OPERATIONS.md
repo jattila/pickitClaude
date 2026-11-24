@@ -214,6 +214,35 @@ A sorrend számít, különben az app visszaírja magát.
    - Androidon: *Beállítások → Alkalmazások → PickIt → Tárhely → Adatok törlése*
    - iOS-en: **csak az app törlése és újratelepítése**
 
+## 15. Meghívó weboldal ⚙
+
+A meghívó link `https://pickitclaude.web.app/join/KÓD` (a fejlesztői változaté
+`/dev/join/KÓD`). Ha az app telepítve van, a telefon az appot nyitja meg, ha nincs,
+egy oldalt a kóddal és a letöltési linkekkel. Forrás: `hosting/public/`.
+
+```bash
+npx firebase-tools deploy --only hosting --project pickitclaude
+```
+
+**Két ellenőrzőfájl, amin múlik, hogy a link az appot nyitja-e meg:**
+
+- `.well-known/apple-app-site-association`: Team ID + bundle ID + útvonal. Az Apple
+  a saját CDN-jéről olvassa, **telepítéskor**, és órákig gyorsítótárazza. Egy
+  módosítás után az iPhone-on törölni és újratelepíteni kell az appot.
+- `.well-known/assetlinks.json`: csomagnév + az **aláíró kulcs SHA-256-ja**. A
+  Playről telepített appot a Play App Signing kulcsa írja alá, nem a feltöltési
+  kulcs. Ha bármelyik kulcs változik, ide is be kell írni. Az Android is
+  **telepítéskor** ellenőriz.
+
+Ellenőrzés kívülről:
+
+```bash
+curl -sS "https://digitalassetlinks.googleapis.com/v1/assetlinks:check?source.web.site=https://pickitclaude.web.app&relation=delegate_permission/common.handle_all_urls&target.android_app.package_name=com.pickitclaude.app&target.android_app.certificate.sha256_fingerprint=64:07:B2:AF:3C:B9:34:82:17:3A:91:E7:83:89:34:21:74:D8:D3:F7:4E:16:A6:22:31:2E:4F:D1:29:B5:A4:63"
+```
+
+A letöltési linkek a `hosting/public/join/index.html`-ben vannak. Ezek
+módosításához csak a fenti deploy kell, új build nem.
+
 ---
 
 ## Ami most nyitva van
@@ -222,3 +251,5 @@ A sorrend számít, különben az app visszaírja magát.
 - **APNs kulcs a `.dev` iOS apphoz** — enélkül a fejlesztői változatban nincs push.
 - **App Store Connect app neve** `PickItClaude`; a TestFlight meghívó ezen a
   néven megy ki. Átnevezhető `PickIt`-re.
+- **TestFlight nyilvános link** a meghívó weboldalon. Amíg nincs, az oldal azt
+  írja, hogy iPhone-ra a küldőtől kell TestFlight-meghívót kérni.

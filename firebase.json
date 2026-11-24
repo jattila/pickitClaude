@@ -10,5 +10,63 @@
       "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"],
       "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
     }
-  ]
+  ],
+  "hosting": {
+    "public": "hosting/public",
+    "ignore": [
+      "**/.DS_Store"
+    ],
+    "appAssociation": "NONE",
+    "rewrites": [
+      {
+        "source": "/join/**",
+        "destination": "/join/index.html"
+      },
+      {
+        "source": "/dev/join/**",
+        "destination": "/join/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Referrer-Policy",
+            "value": "no-referrer"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex"
+          },
+          {
+            "key": "Content-Security-Policy",
+            "value": "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+          }
+        ]
+      }
+    ]
+  }
 }

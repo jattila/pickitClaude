@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["DAUW38YPBN.com.pickitclaude.app"],
+        "components": [{ "/": "/join/*", "comment": "Group invites" }]
+      },
+      {
+        "appIDs": ["DAUW38YPBN.com.pickitclaude.app.dev"],
+        "components": [{ "/": "/dev/join/*", "comment": "Group invites from the development build" }]
+      }
+    ]
+  }
+}
